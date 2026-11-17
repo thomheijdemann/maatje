@@ -43,6 +43,29 @@ const EMO = {
   boos: ['', '#ff4d4d'], zweet: ['', '#7fc8ff'], idee: ['', '#ffe066'], zzz: ['Z', '#ffffff'],
 };
 
+/* zijn eigen uiterlijk: wat er bovenop zit (voelsprieten, oren, hoorntjes, een kuif), een tekening op zijn lijf (buik, strepen,
+   stippen) en blosjes op de wangen. Alles in kolommen en rijen van zijn lichaam: kolom 2 t/m 11, rij 0 t/m 7, boven het hoofd is negatief. */
+const STIJL_EFFEN = { top: 'geen', vlek: 'geen', wangen: false };
+const STIJLEN = { top: ['geen', 'antenne', 'oren', 'hoorns', 'kuif'], vlek: ['geen', 'buik', 'strepen', 'stippen'] };
+const STIJL_STANDAARD = STIJL_EFFEN;                                                       // standaard ziet hij er precies zo uit als je hem kent: niets extra's. Eigen uiterlijken kies je zelf.
+const TOP_PX = {                                                                           // [kolom, rij, kleur]: l = lijfkleur, g = geel, c = crème
+  antenne: [[4, -3, 'l'], [4, -2, 'l'], [4, -1, 'l'], [4, -4, 'g'], [9, -3, 'l'], [9, -2, 'l'], [9, -1, 'l'], [9, -4, 'g']],
+  oren: [[2, -1, 'l'], [3, -1, 'l'], [2, -2, 'l'], [10, -1, 'l'], [11, -1, 'l'], [11, -2, 'l']],
+  hoorns: [[3, -1, 'c'], [3, -2, 'c'], [10, -1, 'c'], [10, -2, 'c'], [2, -3, 'c'], [11, -3, 'c']],
+  kuif: [[6, -1, 'l'], [7, -1, 'l'], [7, -2, 'l'], [8, -3, 'l']],
+};
+function tekenStijl(c, f, s, y0) {
+  const st = f.stijl || STIJL_EFFEN, u = (k, r, w, h) => c.fillRect((k - 7) * s, y0 + r * s, w * s, h * s);
+  if (st.vlek === 'buik') { c.fillStyle = 'rgba(255,255,255,0.38)'; u(4, 5, 6, 3); }
+  else if (st.vlek === 'strepen') { c.fillStyle = 'rgba(0,0,0,0.2)'; u(2, 4, 10, 1); u(2, 6, 10, 1); }
+  else if (st.vlek === 'stippen') { c.fillStyle = 'rgba(0,0,0,0.2)'; u(3, 5, 1, 1); u(5, 7, 1, 1); u(8, 6, 1, 1); u(10, 4, 1, 1); u(6, 4, 1, 1); }
+  if (st.wangen) { c.fillStyle = '#ff9bb8'; u(3, 4, 1, 1); u(10, 4, 1, 1); }
+  const h = HOEDEN[f.animHoed || f.hoed], top = TOP_PX[st.top];
+  if (top && (!h || h.r >= 0)) {                                                           // onder een hoge hoed is geen plek voor voelsprieten
+    const lijf = f.verkoold > 0 ? '#2e2c2a' : (f.animKleur || f.kleurNu);
+    for (const p of top) { c.fillStyle = p[2] === 'l' ? lijf : p[2] === 'g' ? '#ffd23f' : '#f4f1ea'; u(p[0], p[1], 1, 1); }
+  }
+}
 function tekenHoed(c, f, s, y0) {
   const h = HOEDEN[f.animHoed || f.hoed];
   if (!h) return;
@@ -94,6 +117,7 @@ function tekenSprite(c, f) {
   const aL = Math.round(p.armL * s), aR = Math.round(p.armR * s);
   c.fillRect(-7 * s, y0 + 4 * s + aL, 2 * s, 2 * s);
   c.fillRect(5 * s, y0 + 4 * s + aR, 2 * s, 2 * s);
+  tekenStijl(c, f, s, y0);
   tekenOgen(c, f, s, y0);
   tekenHoed(c, f, s, y0);
   if (f.prop) tekenProp(c, f, s, y0, aL, aR);     // uit anim.js
@@ -131,6 +155,8 @@ class Figuur {
     // voor animaties (anim.js): een voorwerp in zijn hand, een touw of hoepel, een andere kleur, een plaatje in plaats van hemzelf
     this.prop = null; this.ring = null; this.animKleur = null; this.animAlfa = 1; this.animHoed = null; this.animRol = 0;
     this.beeld = null; this.beeldI = 0; this.skin = null; this.skinT = 0; this.skinI = 0;
+    this.stijl = o.stijl || STIJL_EFFEN;                            // zijn eigen uiterlijk: voelsprieten, vlek, wangen (zie tekenStijl)
+    this.gId = 0; this.gX0 = 0; this.gB = 0; this.negeer = null;     // het venster waar hij op staat (platform.js), en waar het was
     this.rekX = 1; this.rekY = 1; this.alfa = 1; this.zichtbaar = true; this.plet = 0;
     this.ogen = 'normaal'; this.ogenTot = 0; this.ogenVast = null; this.ogenNu = null;
     this.oogDx = 0; this.oogDy = 0; this.kijkVast = null; this.kijkTot = 0; this.kijkNaar = null;
@@ -142,6 +168,24 @@ class Figuur {
     this.gvx = 0; this.gvy = 0; this.pakDx = 0; this.pakDy = 0; this.aaiT = 0; this.aaiKoel = 0;
   }
   marge() { return 7 * this.maat + 2; }
+  /* waar zijn voeten staan als hij loopt: op zijn venster, of op de vloer van het scherm */
+  vloerY(x) { if (this.gId) { const p = M.plat.op.get(this.gId); if (p) return p.y; } return M.vloer(x); }
+  /* hij staat op een venster: meebewegen als het venster verschuift, en vallen als het weg is of niet meer onder hem ligt */
+  steun() {
+    if (!this.gId) return;
+    if (this.lucht || this.gepakt || this.vliegt || this.vlak !== 0) { this.gId = 0; return; }
+    const p = M.plat.op.get(this.gId);
+    if (!p) return this.valVan();
+    if (p.x0 !== this.gX0) { if (p.x1 - p.x0 === this.gB) this.x += p.x0 - this.gX0; this.gX0 = p.x0; this.gB = p.x1 - p.x0; }
+    this.y = p.y;
+    if (!M.plat.staatOp(p, this.x)) this.valVan();
+  }
+  valVan() {                                                        // van zijn venster af: hij valt naar wat eronder ligt (en dwars door dat venster heen)
+    this.laatDoor();
+    this.gId = 0; this.lucht = true; this.vy = 0; this.vx = 0; this.stuiters = 0; this.hard = false;
+  }
+  laatDoor() { const p = this.gId && M.plat.op.get(this.gId); if (p) this.negeer = { id: p.id, y: p.y }; }      // dit venster telt niet als hij erdoorheen valt
+  staOp(p) { this.gId = p.id; this.gX0 = p.x0; this.gB = p.x1 - p.x0; this.y = p.y; }
   vs() { return Math.sqrt(this.maat / 6); }                         // grote poppetjes lopen sneller
   lokaal(lx, ly) {                                                  // van zijn eigen assen naar het scherm
     const th = VLAKHOEK[this.vlak] + this.draai, c = Math.cos(th), si = Math.sin(th);
@@ -205,6 +249,7 @@ class Figuur {
   update(dt) {
     const s = this.maat;
     this.rust(dt);
+    this.steun();
     if (this.verkoold > 0) this.verkoold -= dt;
     if (this.duizel > 0) this.duizel -= dt;
     this.kleurNu = this.kleurWissel ? 'hsl(' + Math.round((M.t * 90 + this.nr * 47) % 360) + ',72%,62%)' : this.kleur;
@@ -265,7 +310,7 @@ class Figuur {
     if (def.lijf) this.houding = null;
     else if (!def.stil && this.houding === 'slaap') this.houding = 'zit';
     let act;
-    if ((def.grond || def.lijf) && (this.vlak !== 0 || this.vliegt)) { const zelf = this; act = reeks([naarGrond(zelf), maak]); }
+    if (((def.grond || def.lijf) && (this.vlak !== 0 || this.vliegt)) || (def.vloer && this.gId)) { const zelf = this; act = reeks([naarGrond(zelf), maak]); }     // vloer: alleen op de echte vloer van het scherm (muren, bal)
     else act = maak();
     if (item.nietWachten) { if (act) this.bij.push(act); }
     else { this.nu = act; this.nuNaam = def.naam; }
@@ -279,10 +324,12 @@ class Figuur {
     this.nu = null; this.rij.length = 0; this.bij.length = 0; this.straks.length = 0;
     this.bel = null; this.zichtbaar = true; this.alfa = 1; this.draai = 0; this.ding = null;
     if (this.vlak === 1) this.x = M.W; else if (this.vlak === 3) this.x = 0; else if (this.vlak === 2) this.y = 0;
-    else if (!this.lucht && !this.vliegt && !this.gepakt) this.y = M.vloer(this.x);
+    else if (!this.lucht && !this.vliegt && !this.gepakt) this.y = this.vloerY(this.x);
   }
   /* loslaten van muur of plafond, of de raket uit: hij valt naar de vloer */
   laatLos() {
+    this.laatDoor();
+    this.gId = 0;
     if (this.vlak !== 0) {
       const m = this.midden(), th = VLAKHOEK[this.vlak];
       this.vx = this.vlak === 1 ? -90 : this.vlak === 3 ? 90 : 0;
@@ -292,7 +339,7 @@ class Figuur {
     this.x = klem(this.x, this.marge(), M.W - this.marge());
   }
   natuur(dt) {
-    const s = this.maat, m = this.marge();
+    const s = this.maat, m = this.marge(), y0 = this.y;
     this.vy = Math.min(2600, this.vy + ZW * dt);
     this.x += this.vx * dt; this.y += this.vy * dt;
     if (this.rolV) this.rol += this.rolV * dt;
@@ -300,12 +347,15 @@ class Figuur {
     if (this.x < m) { this.x = m; this.vx = Math.abs(this.vx) * 0.55; }
     else if (this.x > M.W - m) { this.x = M.W - m; this.vx = -Math.abs(this.vx) * 0.55; }
     if (this.y < 10 * s && this.vy < 0) { this.y = 10 * s; this.vy = -this.vy * 0.3; }
-    const vl = M.vloer(this.x);
+    let vl = M.vloer(this.x), plat = null;
+    if (this.negeer && this.y > this.negeer.y + 8) this.negeer = null;
+    if (this.vy >= 0) { const p = M.plat.landing(this.x, y0, this.y, this.negeer && this.negeer.id); if (p && p.y < vl) { plat = p; vl = p.y; } }     // een venster waar hij op valt?
     if (this.y >= vl && this.vy >= 0) {
       const klap = this.vy;
       this.y = vl;
       if (this.stuiters > 0 && klap > 420) { this.stuiters--; this.vy = -klap * 0.38; this.vx *= 0.6; this.rolV *= 0.6; M.stof(this.x, vl, 4); M.klank('land'); }
       else {
+        if (plat) this.staOp(plat); else this.gId = 0;
         this.lucht = false; this.vx = 0; this.vy = 0; this.rol = 0; this.rolV = 0; this.plet = 0.14;
         M.stof(this.x, vl, klap > 700 ? 8 : 3); M.klank('land');
         if (this.hard) { this.duizel = 1.7; this.hard = false; }
@@ -316,6 +366,7 @@ class Figuur {
   pak() {
     this.stopAlles();
     if (this.vlak !== 0) this.laatLos();
+    this.gId = 0;
     this.vliegt = false; this.lucht = false; this.gepakt = true; this.houding = null; this.vrijSlaap = false; this.rol = 0; this.rolV = 0;
     this.pakDx = this.x - M.muis.x; this.pakDy = klem(this.y - M.muis.y, 2 * this.maat, 10 * this.maat);
     this.gvx = 0; this.gvy = 0;
@@ -328,8 +379,9 @@ class Figuur {
   }
   los(klik) {
     this.gepakt = false; this.rol = 0;
-    this.lucht = this.y < M.vloer(this.x) - 1;
-    if (klik) { this.vx = 0; this.vy = 0; this.reageer(); return; }
+    const o = M.ondergrond(this.x, this.y - 1);
+    this.lucht = this.y < o.y - 1;
+    if (klik) { if (!this.lucht && o.plat) this.staOp(o.plat); this.vx = 0; this.vy = 0; this.reageer(); return; }
     this.lucht = true;
     this.vx = klem(this.gvx, -2200, 2200); this.vy = klem(this.gvy, -2200, 2200);
     const v = Math.hypot(this.vx, this.vy);
@@ -345,7 +397,7 @@ class Figuur {
   volg(dt) {
     const L = this.leider;
     if (this.lucht || this.vlak !== 0 || this.vliegt) return;
-    if (L.vlak !== 0 || L.vliegt || L.lucht) { this.kijkNaar = L.midden(); return; }
+    if (L.vlak !== 0 || L.vliegt || L.lucht || L.gId) { this.kijkNaar = L.midden(); return; }       // de leider is ergens waar het vriendje niet komt: kijken
     const doel = klem(L.x - L.kijk * (7 * L.maat + this.slot * 12 * this.maat), this.marge(), M.W - this.marge());
     const d = doel - this.x, a = Math.abs(d);
     if (this.houding) { if (a > 220) this.houding = null; return; }
@@ -383,7 +435,7 @@ class Figuur {
   }
   tekenSchaduw() {
     if (!this.zichtbaar || this.vlak !== 0) return;
-    const s = this.maat, vl = M.vloer(this.x), h = vl - this.y + this.pose.dy * s;
+    const s = this.maat, vl = M.ondergrond(this.x, this.y - 1).y, h = vl - this.y + this.pose.dy * s;
     if (h > 600) return;
     const k = klem(1 - h / 600, 0.3, 1), w = Math.round(11 * s * k * Math.abs(this.rekX)), hh = Math.max(2, Math.round(s * 0.5));
     ctx.globalAlpha = 0.2 * k * this.alfa; ctx.fillStyle = '#000000';

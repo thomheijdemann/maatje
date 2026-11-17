@@ -16,6 +16,7 @@ const path = require('path');
 const ARGS = process.argv.slice(app.isPackaged ? 1 : 2);
 const HOOK = ARGS.includes('--hook');
 const PROEF = ARGS.includes('--proef');
+const ECHTVENSTERS = ARGS.includes('--echte-vensters');          // alleen voor de test: ook in een proef de echte vensters van het scherm gebruiken
 const optie = naam => { const a = ARGS.find(x => x.startsWith('--' + naam + '=')); return a ? a.slice(naam.length + 3) : null; };
 const PIJP = '\\\\.\\pipe\\' + (PROEF ? 'maatje-proef' : 'maatje');
 
@@ -25,7 +26,10 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 const INSTPAD = path.join(app.getPath('userData'), 'instellingen.json');
 const EIGENMAP = path.join(app.getPath('userData'), 'animations');
-const inst = { kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', schermen: 'alle' };
+const STIJLEN = { top: ['geen', 'antenne', 'oren', 'hoorns', 'kuif'], vlek: ['geen', 'buik', 'strepen', 'stippen'] };
+const inst = { kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, stijl: { top: 'geen', vlek: 'geen', wangen: false }, schermen: 'alle' };
+const goedeStijl = s => !!s && typeof s === 'object' && STIJLEN.top.includes(s.top) && STIJLEN.vlek.includes(s.vlek) && typeof s.wangen === 'boolean';
+let vinder = null, laatsteVensters = [], vinderFout = null;
 let win = null, paneel = null, tray = null, wereld = null, klaar = false, zichtbaar = true;
 
 function leesInst() {
@@ -40,6 +44,8 @@ function leesInst() {
     if (typeof i.meeleven === 'boolean') inst.meeleven = i.meeleven;
     if (typeof i.skin === 'string' && /^[a-z0-9-]{0,48}$/.test(i.skin)) inst.skin = i.skin;
     if (i.schermen === 'primair') inst.schermen = 'primair';
+    if (typeof i.vensters === 'boolean') inst.vensters = i.vensters;
+    if (goedeStijl(i.stijl)) inst.stijl = { top: i.stijl.top, vlek: i.stijl.vlek, wangen: i.stijl.wangen };
   } catch (e) { /* nog geen instellingen: de standaard is goed */ }
 }
 function schrijfInst() {
@@ -91,6 +97,29 @@ function maakVenster() {
   win.on('closed', () => { win = null; if (paneel && !paneel.isDestroyed()) paneel.destroy(); });
 }
 
+/* ---- de vensters op het scherm: Maatje kan erop staan (zie vensters.js en app/js/platform.js) ---- */
+function zendVensters() { if (win && klaar && !win.isDestroyed()) win.webContents.send('vensters', laatsteVensters); }
+function zetVensters() {
+  const aan = inst.vensters && (!PROEF || ECHTVENSTERS);
+  if (!aan) { if (vinder) { vinder.stop(); vinder = null; } if (laatsteVensters.length) { laatsteVensters = []; zendVensters(); } return; }
+  if (vinder) return;
+  vinder = require('./vensters.js').start({
+    cacheMap: app.getPath('userData'),
+    bijFout: t => { vinderFout = t; },
+    bijLijst: ruw => {
+      const uit = [];
+      for (const w of ruw.slice(0, 60)) {
+        let r = { x: w.x, y: w.y, width: w.w, height: w.h };
+        try { r = screen.screenToDipRect(null, r); } catch (e) { /* dan blijven het echte beeldpunten */ }
+        const x = r.x - wereld.x, y = r.y - wereld.y;
+        if (x + r.width <= 0 || x >= wereld.w || y >= wereld.h) continue;
+        uit.push({ i: w.i, x, y, w: r.width, h: r.height, p: w.p });
+      }
+      laatsteVensters = uit;
+      zendVensters();
+    },
+  });
+}
 function herindeel() {
   if (!win || PROEF) return;
   wereld = meetWereld();
@@ -169,6 +198,7 @@ const open = new Map();
 let volgnr = 1;
 ipcMain.on('klaar', () => {
   klaar = true;
+  zetVensters(); zendVensters();
   if (!PROEF && zichtbaar && win) { win.showInactive(); win.setAlwaysOnTop(true, 'screen-saver'); }
   const doen = optie('do');
   if (doen) doe(doen.split(';').map(s => s.trim()).filter(Boolean));
@@ -178,7 +208,10 @@ ipcMain.on('muis', (e, pakken) => { if (win) win.setIgnoreMouseEvents(!pakken, {
 ipcMain.on('zicht', (e, aan) => zetZicht(!!aan, true));
 ipcMain.on('bewaar', (e, i) => {
   for (const k of ['kleur', 'maat', 'hoed', 'geluid', 'vrij', 'meeleven', 'skin']) if (i && k in i) inst[k] = i[k];
+  if (i && typeof i.vensters === 'boolean') inst.vensters = i.vensters;
+  if (i && goedeStijl(i.stijl)) inst.stijl = { top: i.stijl.top, vlek: i.stijl.vlek, wangen: i.stijl.wangen };
   schrijfInst();
+  zetVensters();
   if (tray) { tray.setImage(icoon(32)); werkMenuBij(); }
   naarPaneel('stand');
 });
@@ -196,7 +229,7 @@ function haakVanDezeApp() {                          // de verpakte app is zelf 
   return app.isPackaged ? { map, haak: { command: process.execPath.replace(/\\/g, '/'), args: ['--hook'] } } : { map };
 }
 ipcMain.handle('paneel-vraag', (e, b) => (b && ['doe', 'status', 'anims', 'hulp'].includes(b.wat) ? vraagVenster({ wat: b.wat, regels: b.regels }) : { ok: false, fout: 'not allowed' }));
-ipcMain.handle('paneel-stand', () => ({ ok: true, inst, versie: app.getVersion(), verpakt: app.isPackaged, zichtbaar, map: EIGENMAP, koppel: require('../koppel.js').koppelStand(haakVanDezeApp()) }));
+ipcMain.handle('paneel-stand', () => ({ ok: true, inst, versie: app.getVersion(), verpakt: app.isPackaged, zichtbaar, map: EIGENMAP, vensters: vinder ? vinder.stand() : { loopt: false, vensters: 0, fout: vinderFout }, koppel: require('../koppel.js').koppelStand(haakVanDezeApp()) }));
 ipcMain.handle('paneel-zicht', (e, aan) => { zetZicht(!!aan); return { ok: true }; });
 ipcMain.handle('paneel-stop', () => { setTimeout(() => app.quit(), 60); return { ok: true }; });
 ipcMain.handle('paneel-show', () => veilig(() => vraagVenster({ wat: 'doe', regels: fs.readFileSync(path.join(__dirname, '..', 'shows', 'show.txt'), 'utf8').split(/\r?\n/) })));
@@ -329,4 +362,5 @@ else {
     for (const ev of ['display-added', 'display-removed', 'display-metrics-changed']) screen.on(ev, () => setTimeout(herindeel, 300));
   });
   app.on('window-all-closed', () => app.quit());
+  app.on('will-quit', () => { if (vinder) vinder.stop(); });
 }

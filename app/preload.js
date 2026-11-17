@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('maatjeApp', {
   opWereld: f => ipcRenderer.on('wereld', (e, w) => f(w)),
   opVraag: f => ipcRenderer.on('vraag', (e, nr, b) => f(nr, b)),
   opEigen: f => ipcRenderer.on('eigen-nieuw', () => f()),
+  opVensters: f => ipcRenderer.on('vensters', (e, l) => f(l)),
   antwoord: (nr, u) => ipcRenderer.send('antwoord', nr, u),
   muis: pakken => ipcRenderer.send('muis', !!pakken),
   zicht: aan => ipcRenderer.send('zicht', !!aan),

@@ -14,12 +14,13 @@ const cp = require('child_process');
 
 const HIER = path.join(__dirname, '..');
 const { zoekElectron } = require('../maatje.js');
+const { zoekCsc } = require('../app/vensters.js');
 const PAKKET = JSON.parse(fs.readFileSync(path.join(HIER, 'package.json'), 'utf8'));
 const UIT = path.join(HIER, 'dist'), MAP = path.join(UIT, 'Maatje-win32-x64'), EXE = path.join(MAP, 'Maatje.exe');
 const KLEUR = [0xd9, 0x77, 0x57], OOG = [0x14, 0x14, 0x13];
 
 /* ---- het icoon: het poppetje, in blokjes, op een doorzichtige achtergrond ---- */
-function poppetje(n) {                               // n x n pixels, RGBA
+function poppetje(n) {                               // n x n pixels, RGBA: precies zoals hij er standaard uitziet
   const px = Buffer.alloc(n * n * 4);
   const s = Math.max(1, Math.floor(n / 14)), ox = Math.floor((n - 14 * s) / 2), oy = Math.floor((n - 10 * s) / 2);
   for (let gy = 0; gy < 10; gy++) for (let gx = 0; gx < 14; gx++) {
@@ -107,6 +108,11 @@ WINDOW  The window shows every animation. Click one to see it, "Play on the desk
         Closed the window? Click the little icon next to the clock.
 STOP    The little icon next to the clock -> Quit, or the button "Quit Maatje" in the window.
 
+WINDOWS He lives on your windows: he jumps onto the top edge of your programs, walks along it and jumps on to the next one,
+        all by himself. To do that, a small program (vensters.exe) checks where the windows are. It only looks at WHERE they are,
+        never at what is in them. You can turn it off in the window (Settings: Stand on your windows).
+LOOK    He looks like you know him. If you want, you can give him a look of his own in Settings.
+
 FROM OUTSIDE (for scripts, or for Claude)
         Maatje.exe --do="walk middle; say Hi!; anim victory-dance"
         With Node.js there is more:  node resources/app/maatje.js help
@@ -135,6 +141,9 @@ function bouw() {
   const app = path.join(MAP, 'resources', 'app');
   fs.mkdirSync(app, { recursive: true });
   for (const naam of ['app', 'shows']) fs.cpSync(path.join(HIER, naam), path.join(app, naam), { recursive: true });
+  const csc = zoekCsc();                                // het vensterzoek-programma kant en klaar meegeven, dan hoeft er op de pc van een ander niets gemaakt te worden
+  if (!csc) throw new Error('The C# compiler of Windows was not found, so I cannot make vensters.exe.');
+  cp.execFileSync(csc, ['/nologo', '/target:exe', '/platform:x64', '/optimize+', '/out:' + path.join(app, 'app', 'vensters.exe'), path.join(HIER, 'app', 'vensters.cs')], { stdio: 'pipe', windowsHide: true });
   for (const naam of ['koppel.js', 'hook.js', 'haak.js', 'maatje.js', 'README.md', 'LICENSE', 'NOTICE.md']) fs.copyFileSync(path.join(HIER, naam), path.join(app, naam));
   fs.writeFileSync(path.join(app, 'package.json'), JSON.stringify({ name: 'maatje', productName: 'Maatje', version: PAKKET.version, description: PAKKET.description, license: PAKKET.license, main: 'app/main.js' }, null, 2) + '\n');
   fs.writeFileSync(path.join(MAP, 'README.txt'), LEESMIJ.replace(/\n/g, '\r\n'));

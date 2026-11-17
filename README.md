@@ -1,13 +1,13 @@
 # Maatje
 
-A little orange pixel pet that walks across your desktop, with more than 500 animations, and that
-Claude can control.
+A little orange pixel pet that lives on your desktop: he jumps from window to window all by himself,
+has more than 500 animations and a look that is only his, and Claude can control him.
 
 ![Maatje runs, talks, sets off fireworks and types on his laptop](docs/maatje.gif)
 
-*Maatje* is Dutch for "little buddy". He stands on top of your taskbar, walks across all your screens,
-and does what you or Claude tell him: walk, talk, fly, dance, set off fireworks. He can also follow
-along with Claude Code: he types on a tiny laptop while Claude is working and cheers when Claude is done.
+*Maatje* is Dutch for "little buddy". He lives on top of your windows and your taskbar, walks across all
+your screens, and does what you or Claude tell him: walk, talk, fly, dance, set off fireworks. He can also
+follow along with Claude Code: he types on a tiny laptop while Claude is working and cheers when Claude is done.
 
 This is an unofficial fan project, made by a kid and Claude. It is not affiliated with Anthropic.
 
@@ -15,8 +15,13 @@ This is an unofficial fan project, made by a kid and Claude. It is not affiliate
 
 ## What he can do
 
-- **Walk across your desktop.** He stands on the taskbar and walks over every screen.
+- **Live on your windows.** He jumps onto the top edge of your programs, walks along it, looks around and
+  jumps on to the next window, all the time and all by himself. Drag a window and he rides along; close it
+  and he falls. When there is no window he walks on the taskbar and over every screen.
   You simply click through him, unless you put the mouse *on* him.
+- **A look of his own, if you want one.** He looks exactly like the little guy you know. If you like, you can
+  give him antennae, ears, horns, stripes or rosy cheeks, or type your name and get a look that is only
+  yours (`unique <your name>`).
 - **More than 500 animations.** Dances, sports, tricks, feelings, animals, party tricks and little things
   he does when he is bored. Pick one in the window, or type `anim moonwalk`.
 - **Your own animations.** Drop a GIF or a picture into the window and he turns into it. Or type a line
@@ -79,6 +84,42 @@ under the little `^` arrow.
   a box to type commands into.
 
 Closing the window does not stop Maatje. Click the icon next to the clock to get it back.
+
+## Living on your windows
+
+Nobody has to tell him. As soon as there are windows on your screen he jumps onto the top edge of one,
+walks along it, looks around, sits for a moment, and jumps on to another window, over and over. He only
+comes down to the floor now and then.
+
+- Drag a window and he rides along. Close it, or put another window in front of the spot where he stands,
+  and he falls to whatever is below.
+- He does not stand on maximized windows (there is no room above them), on windows that are too high to fit
+  under the top of the screen, or on windows that are minimized or hidden.
+- You can also send him: `perch` (the nearest window), `perch random`, `perch left`, `perch right`,
+  `perch higher`, or `perch chrome` for a program by name. `land` brings him down to the floor again.
+- Turn it off with **Stand on your windows** in Settings, or with `windows off`.
+
+**What he looks at.** To do this a small program (`vensters.exe`, the source is `app/vensters.cs`) checks
+about ten times a second where the windows on your screen are: their place, their size and which one is in
+front, plus the name of the program they belong to (for example `chrome`). It never reads what is in a window:
+not the title, not the content, not a screenshot. Nothing leaves your pc. Running from the source, Maatje makes
+this little program once with the C# compiler that comes with Windows.
+
+## Unique
+
+He looks like the little guy you know, and he stays that way. But if you want, he can get a look of his own:
+antennae with a glowing tip, a lighter belly patch, rosy cheeks, and more.
+
+```
+node maatje.js unique thom          a look that is only for the name "thom" (the same name always gives the same look)
+node maatje.js unique               a surprise
+node maatje.js "unique top horns; unique pattern stripes; unique cheeks off"
+node maatje.js unique classic       back to the normal look, with nothing extra
+```
+
+On top: `antennae`, `ears`, `horns`, `tuft` or `none`. Pattern: `belly`, `stripes`, `spots` or `none`. The color
+comes with it (or choose your own with `color`). In the window you find all of this under Settings: type your
+name, roll the dice, or choose every part yourself. Friends copy his look.
 
 ## Animations
 
@@ -160,12 +201,12 @@ Maatje.exe --do="walk middle; say Hi!; anim victory-dance"
 
 | Kind | Commands |
 |---|---|
-| Movement | `walk`, `run`, `sneak`, `jump`, `flip`, `spin`, `teleport`, `fly`, `land`, `climb`, `lap` |
+| Movement | `walk`, `run`, `sneak`, `jump`, `flip`, `spin`, `teleport`, `fly`, `land`, `climb`, `lap`, `perch`, `windows` |
 | Talking | `say`, `think`, `shout`, `whisper`, `quiet` |
 | Feelings | `emote`, `eyes`, `look`, `wave`, `cheer`, `nod`, `shake`, `bow`, `startle`, `dance`, `sit`, `stand`, `sleep`, `wake`, `type` |
 | Animations | `anim` |
 | Effects | `fireworks`, `laser`, `lightning`, `rainbow`, `snow`, `title`, `sword`, `ball`, `kick`, `soccer` |
-| Looks | `color`, `size`, `hat`, `skin` |
+| Looks | `color`, `size`, `hat`, `skin`, `unique` |
 | Friends | `clone`, `cleanup` |
 | Claude | `work`, `follow` |
 | Other | `wait`, `stop`, `roam`, `sound`, `hide`, `come` |
@@ -248,7 +289,10 @@ anim victory-dance
 - `app/main.js`: one transparent window over all your screens (always on top, never takes focus, clicks
   go through it; its settings are in `app/overlay.js`), the app window, the icon next to the clock, the
   folder with your own animations, and a named pipe over which commands come in. No network port is opened.
-- `app/js/figuur.js`: how the little guy is drawn and how he moves (14 by 10 pixels, all in code).
+- `app/js/figuur.js`: how the little guy is drawn and how he moves (14 by 10 pixels, all in code), also his
+  own look (`tekenStijl`) and how he stands on, rides on and falls off a window.
+- `app/js/platform.js`: turns the list of windows into platforms (the visible part of each top edge) and works
+  out how he has to jump to land on one. `app/vensters.cs` + `app/vensters.js`: the window finder.
 - `app/js/acties.js`: all commands. A new command is one small block `opdracht('name', {...})`;
   the help, the language and the test pick it up by themselves.
 - `app/js/anim.js`: the animations: the small moves, the things he can hold, and reading a GIF.
@@ -269,7 +313,11 @@ checks everything: every command, every animation, your own animations, the app 
 following along, and that nothing is left behind on the screen. To test the built program instead, set
 `MAATJE_EXE` to the path of `Maatje.exe` first.
 
-`npm run test:window` is a second, small test with real windows: for about ten seconds a tiny window
+`npm run test:windows` tests the window finder and standing on windows with real windows: a few plain
+windows appear in the left of your screen for about half a minute, and he jumps onto one of them, rides along
+when it is dragged, and falls when it is closed.
+
+`npm run test:window` is another small test with real windows: for about ten seconds a tiny window
 appears in the top left corner with Maatje's see-through window over it. It checks that a program under
 Maatje keeps drawing while your mouse is on him. (In version 1.3.0 it did not: a YouTube video under
 Maatje froze when you clicked him. `app/overlay.js` explains why.)

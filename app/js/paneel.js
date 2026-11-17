@@ -312,13 +312,21 @@
     for (const n of Object.keys(HOEDEN)) { const o = el('option', '', enWoord('hoed', n)); o.value = n; hoed.append(o); }
     hoed.addEventListener('change', () => doe(['hoed ' + hoed.value]));
     for (const b of document.querySelectorAll('.maat')) b.addEventListener('click', () => doe(['maat ' + b.dataset.maat]));
-    for (const [id, woord] of [['t-vrij', 'vrij'], ['t-geluid', 'geluid'], ['t-meeleven', 'meeleven']]) $(id).addEventListener('change', e => doe([woord + ' ' + (e.target.checked ? 'aan' : 'uit')]));
+    for (const [id, woord] of [['t-vrij', 'vrij'], ['t-vensters', 'vensters'], ['t-geluid', 'geluid'], ['t-meeleven', 'meeleven']]) $(id).addEventListener('change', e => doe([woord + ' ' + (e.target.checked ? 'aan' : 'uit')]));
     $('k-koppel').addEventListener('click', async () => {
       const u = await api.koppel(!stand.koppel.gekoppeld);
       toon($('c-uit'), u.ok ? u.tekst : fouttekst(u), !u.ok);
       await ververs();
     });
     $('k-skinuit').addEventListener('click', () => doe(['skin off']));
+    const uniek = async regel => { const u = await doe([regel], $('u-uit')); if (u.ok) toon($('u-uit'), ''); };
+    $('u-doe').addEventListener('click', () => { const n = $('u-naam').value.trim(); if (!n) { toon($('u-uit'), 'Type your name first, or roll the dice.', true); $('u-naam').focus(); return; } uniek('unique ' + n); });
+    $('u-naam').addEventListener('keydown', e => { if (e.key === 'Enter') $('u-doe').click(); });
+    $('u-gok').addEventListener('click', () => uniek('unique'));
+    $('u-top').addEventListener('change', e => uniek('unique top ' + e.target.value));
+    $('u-vlek').addEventListener('change', e => uniek('unique pattern ' + e.target.value));
+    $('u-wangen').addEventListener('change', e => uniek('unique cheeks ' + (e.target.checked ? 'on' : 'off')));
+    $('u-klassiek').addEventListener('click', () => uniek('unique classic'));
     const stuur = async () => { const t = $('o-tekst').value.split(';').map(r => r.trim()).filter(Boolean); if (t.length) await doe(t, $('o-uit')); };
     $('o-doe').addEventListener('click', stuur);
     $('o-tekst').addEventListener('keydown', e => { if (e.key === 'Enter') stuur(); });
@@ -347,13 +355,18 @@
     let s;
     try { s = await api.stand(); } catch (e) { return; }
     if (!s || !s.ok) return;
-    const kleurAnders = s.inst.kleur !== f.kleur, skinAnders = s.inst.skin !== stand.inst.skin;
+    const kleurAnders = s.inst.kleur !== f.kleur || JSON.stringify(s.inst.stijl || STIJL_EFFEN) !== JSON.stringify(f.stijl), skinAnders = s.inst.skin !== stand.inst.skin;      // een andere kleur of een ander uiterlijk: de plaatjes opnieuw
     stand = s;
     $('versie').textContent = 'v' + s.versie;
     $('waar').textContent = s.zichtbaar ? 'on your desktop' : 'hidden';
     $('waar').classList.toggle('uit', !s.zichtbaar);
     $('k-zicht').textContent = s.zichtbaar ? 'Hide' : 'Show';
-    $('t-vrij').checked = !!s.inst.vrij; $('t-geluid').checked = !!s.inst.geluid; $('t-meeleven').checked = !!s.inst.meeleven;
+    $('t-vrij').checked = !!s.inst.vrij; $('t-geluid').checked = !!s.inst.geluid; $('t-meeleven').checked = !!s.inst.meeleven; $('t-vensters').checked = s.inst.vensters !== false;
+    const vs = s.vensters || {};
+    $('v-stand').textContent = s.inst.vensters === false ? '' : vs.loopt ? 'He sees ' + vs.vensters + (vs.vensters === 1 ? ' window' : ' windows') + ' right now.' : vs.fout ? 'The window finder does not work: ' + vs.fout : 'Starting the window finder...';
+    const st = s.inst.stijl || STIJL_EFFEN, EN_TOP = { geen: 'none', antenne: 'antennae', oren: 'ears', hoorns: 'horns', kuif: 'tuft' }, EN_VLEK = { geen: 'none', buik: 'belly', strepen: 'stripes', stippen: 'spots' };
+    $('u-top').value = EN_TOP[st.top] || 'none'; $('u-vlek').value = EN_VLEK[st.vlek] || 'none'; $('u-wangen').checked = !!st.wangen;
+    f.stijl = tf.stijl = lf.stijl = Object.assign({}, st);
     $('c-stand').textContent = s.koppel.gekoppeld ? 'connected to Claude Code' : 'not connected to Claude Code';
     $('c-stand').classList.toggle('uit', !s.koppel.gekoppeld);
     $('k-koppel').textContent = s.koppel.gekoppeld ? 'Disconnect' : 'Connect';
@@ -405,6 +418,7 @@
   if (api) {
     api.opEigen(() => { herlaad(); });
     api.opStand(() => { ververs(); });
+    setInterval(() => { if ($('blad-inst').classList.contains('aan')) ververs(); }, 2500);      // in de instellingen: bijhouden hoeveel vensters hij ziet
     begin = ververs().then(herlaad);
   }
   /* voor de proef (test/proef.js): het venster bedienen zonder muis */

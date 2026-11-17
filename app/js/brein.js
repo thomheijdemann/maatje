@@ -146,6 +146,7 @@ M.brein = function (dt) {
   const muisDicht = M.t - M.muis.t < 1.5 && Math.hypot(M.muis.x - f.x, M.muis.y - (f.y - 5 * f.maat)) < 170;
   if (f.houding === 'slaap') {                        // slapen: alleen de slaap die hij zelf begon stopt vanzelf
     if (f.vrijSlaap && muisDicht) { f.vrijSlaap = false; M.pauzeNa = 3; M.zelf(['schrik', 'kijk muis']); }
+    else if (f.vrijSlaap && f.slaapTot && M.t > f.slaapTot) { f.vrijSlaap = false; f.slaapTot = 0; M.pauzeNa = 1; M.zelf(['wakker']); }      // met vensters in de buurt slaapt hij maar even
     return;
   }
   if (M.t < M.vrijVanaf) return;
@@ -156,8 +157,27 @@ M.brein = function (dt) {
   M.blijfTot = 0;
   const stil = M.t - Math.max(M.laatsteOpdracht, M.muis.t), r = M.rnd();
   M.pauzeNa = 1.5 + M.rnd() * 5;
-  if (stil > 240 && r < 0.5) { M.zelf(['zit', 'wacht 1.5', 'slaap']); f.vrijSlaap = true; return; }
+  const metVensters = M.plat.aan && M.plat.lijst.length > 0;
+  if (stil > 240 && r < (metVensters ? 0.06 : 0.5)) { M.zelf(['zit', 'wacht 1.5', 'slaap']); f.vrijSlaap = true; f.slaapTot = metVensters ? M.t + 25 + M.rnd() * 35 : 0; return; }
   if (muisDicht && r < 0.5 && M.t > (M.zwaaiKoel || 0)) { M.zwaaiKoel = M.t + 25; M.zelf(['kijk muis', 'zwaai']); return; }
+  /* Zijn vensters: zodra er vensters zijn, leeft hij erop. Hij springt er zelf op en van het ene naar het andere, loopt over de bovenrand,
+     kijkt rond, zit even, en komt maar heel soms naar beneden. Geen opdracht nodig. */
+  if (M.plat.aan && M.plat.lijst.length && f.vlak === 0 && !f.vliegt) {
+    const opVenster = f.gId && M.plat.op.has(f.gId), andere = M.plat.kies(f, 'toevallig');      // is er een venster om naartoe te springen?
+    M.pauzeNa = 0.4 + M.rnd() * 2.2;
+    if (opVenster) {
+      if (r < 0.30 || (!andere && r < 0.62)) M.zelf([M.rnd() < 0.3 ? 'ren ergens' : 'loop ergens']);
+      else if (r < 0.70 && andere) M.zelf(['bovenop toevallig']);
+      else if (r < 0.78) M.zelf(['spring']);
+      else if (r < 0.84) M.zelf(['kijk links', 'wacht 0.7', 'kijk rechts', 'wacht 0.7', 'kijk voor']);
+      else if (r < 0.90) M.zelf(['zit', 'wacht ' + (2 + Math.floor(M.rnd() * 4)), 'sta']);
+      else if (r < 0.94 && M.anim.cats.includes('idle')) M.zelf(['anim random idle']);
+      else if (r < 0.97) M.zelf(['land']);                 // heel soms even naar beneden
+      else M.zelf(['wacht 1']);
+      return;
+    }
+    if (andere && r < 0.9) { M.pauzeNa = 0.5 + M.rnd() * 2; M.zelf(['bovenop toevallig']); return; }
+  }
   if (r < 0.42) M.zelf(['loop ergens']);
   else if (r < 0.52) M.zelf([M.schermen.length > 1 && M.rnd() < 0.5 ? 'loop s' + (1 + Math.floor(M.rnd() * M.schermen.length)) + ':ergens' : 'ren ergens']);
   else if (r < 0.64) M.zelf(['kijk links', 'wacht 0.9', 'kijk rechts', 'wacht 0.9', 'kijk voor']);

@@ -177,7 +177,7 @@ async function proeven() {
   }
   test('every example from the help runs without errors', !kapot.length, kapot);
   test('after every example nothing is left on the canvas once it is erased', !smeer.length, smeer);
-  await doe('stop', 'cleanup', 'land', 'color orange', 'hat none', 'eyes normal', 'rainbow off', 'roam off', 'run s1:middle'); await stap(12);
+  await doe('stop', 'cleanup', 'land', 'color orange', 'unique classic', 'windows on', 'hat none', 'eyes normal', 'rainbow off', 'roam off', 'run s1:middle'); await stap(12);     // (the help example "unique thom" gave him another look)
   s = await status();
   test('back to normal: on the floor, orange, alone', s.hoofd.y === VL && s.hoofd.waar === 'vloer' && s.figuren === 1 && s.hoofd.kleur === '#d97757' && s.hoofd.maat === 6, s.hoofd);
 
@@ -578,6 +578,152 @@ async function proeven() {
   await slaap(600); await stap(0.4); s = await status();
   test('starting it a second time with --do= hands the commands to the one that is running', r.status === 0 && s.hoofd.zegt === 'Second start', { code: r.status, zegt: s.hoofd.zegt });
   await stap(6); await doe('stop');
+
+  // ---- standing on windows (made-up windows here; the real ones are tested in test/vensters.js) ----
+  const WIN = (i, x, y, w, h, p) => ({ i, x, y, w, h, p: p || 'testapp' });
+  const vens = lijst => v({ wat: 'vensters', lijst });
+  const reset = async () => { await vens([]); await doe('stop', 'cleanup', 'roam off', 'size normal', 'hat none', 'land', 'run s1:middle'); await stap(10); };
+  const A = WIN(1001, 300, 600, 500, 300, 'notepad'), B = WIN(1002, 1000, 400, 400, 500, 'chrome');
+  await reset();
+  u = await vens([A, B, WIN(1003, 0, 0, 1920, 1040, 'maximized'), WIN(1004, 1200, 40, 300, 200, 'toohigh')]);
+  test('windows: only windows he can really stand on count (not a maximized one, not one too high to fit under)', u.platforms === 2, u);
+  await doe('perch chrome'); await stap(0.5); s = await status();
+  const hoogteBegin = s.hoofd.y;
+  test('perch: he jumps up into the air', s.hoofd.lucht && s.hoofd.y < VL - 100, s.hoofd);
+  await foto('perch-in-the-air', { gebied: { x: 700, y: 200, w: 900, h: 840 } });
+  await stap(2.6); s = await status();
+  test('perch chrome: he lands exactly on top of the window (inside its left edge)', !s.hoofd.lucht && s.hoofd.y === 400 && dichtbij(s.hoofd.x, 1042, 6) && s.vensters.staOp === 'chrome', { hoofd: s.hoofd, v: s.vensters.staOp });
+  await foto('perch-on-window', { gebied: { x: 700, y: 200, w: 900, h: 840 } });
+  await doe('walk 1300'); await stap(4); s = await status();
+  test('walking along the top of the window: he stays up there', dichtbij(s.hoofd.x, 1300) && s.hoofd.y === 400 && s.vensters.staOp === 'chrome', s.hoofd);
+  await doe('jump'); await stap(0.4); s = await status(); const sprong = 400 - s.hoofd.y;
+  await stap(2); s = await status();
+  test('jumping on the window: up and back down onto the same window', sprong > 40 && s.hoofd.y === 400 && s.vensters.staOp === 'chrome', { sprong, y: s.hoofd.y });
+  await doe('walk 1500'); await stap(7); s = await status();
+  test('walking over the edge: he falls off and walks on at the floor', dichtbij(s.hoofd.x, 1500) && s.hoofd.y === VL && !s.vensters.staOp && !s.hoofd.lucht, s.hoofd);
+  await doe('perch chrome'); await stap(3.2); s = await status(); const xv = s.hoofd.x;
+  await vens([A, WIN(1002, 1200, 400, 400, 500, 'chrome')]); await stap(0.3); s = await status();
+  test('the window is moved sideways: he rides along', dichtbij(s.hoofd.x, xv + 200, 2) && s.hoofd.y === 400 && s.vensters.staOp === 'chrome', { xv, x: s.hoofd.x });
+  await vens([A, WIN(1002, 1200, 460, 400, 500, 'chrome')]); await stap(0.3); s = await status();
+  test('the window is moved down: he goes down with it', s.hoofd.y === 460 && s.vensters.staOp === 'chrome', s.hoofd);
+  await vens([A]); await stap(2.5); s = await status();
+  test('the window is closed: he falls down to the floor', s.hoofd.y === VL && !s.vensters.staOp && !s.hoofd.lucht, s.hoofd);
+  await vens([A, B]); await doe('perch chrome'); await stap(3.2);
+  await vens([WIN(2001, 900, 350, 600, 200, 'popup'), A, B]); await stap(2.5); s = await status();
+  test('another window slides in front of the top edge: he falls', s.hoofd.y === VL && !s.vensters.staOp, s.hoofd);
+  await vens([WIN(2002, 950, 380, 250, 200, 'popup'), A, B]); await doe('perch chrome'); await stap(3.2); s = await status();
+  test('a window that covers part of the edge: he only stands on the part you can see', s.vensters.staOp === 'chrome' && s.hoofd.x >= 1200 && s.hoofd.y === 400, s.hoofd);
+  await vens([WIN(2002, 1100, 380, 400, 200, 'popup'), A, B]); await stap(2.5); s = await status();
+  test('and when that window covers the spot where he stands: he falls', s.hoofd.y === VL && !s.vensters.staOp, s.hoofd);
+  await vens([A, B]); await doe('perch chrome'); await stap(3.2); await doe('land'); await stap(2.5); s = await status();
+  test('land: from a window back down to the floor', s.hoofd.y === VL && !s.vensters.staOp && !s.hoofd.lucht, s.hoofd);
+  await doe('perch chrome'); await stap(3.2); await doe('windows off'); await stap(2.5); s = await status();
+  test('windows off: he falls down and the windows are ignored', s.hoofd.y === VL && s.vensters.platforms === 0 && !s.vensters.aan, s.vensters);
+  await doe('perch chrome'); await stap(2.5); s = await status();
+  test('perch with windows off: he looks puzzled and stays on the floor', s.hoofd.y === VL && !s.vensters.staOp && !s.hoofd.lucht, s.hoofd);
+  await doe('windows on'); await stap(0.3); s = await status();
+  test('windows on: the windows count again', s.vensters.aan && s.vensters.platforms === 2, s.vensters);
+  u = await doe('perch zzz-no-such-program'); await stap(0.6); s = await status();
+  test('perch for a program that has no window: a puzzled "?" and nothing else happens', u.ok && s.hoofd.emotie === 'vraag' && s.hoofd.y === VL, s.hoofd);
+  await stap(2);
+  u = await doe('perch ??');
+  test('perch: something that is not a word is explained', !u.ok && /random/.test(u.fouten[0].tekst), u);
+  // other commands from a window
+  await doe('perch chrome'); await stap(3.2); await doe('walk 1200', 'anim victory-dance'); await stap(8); s = await status();
+  test('an animation on a window: he stays on the window', s.hoofd.y === 400 && s.vensters.staOp === 'chrome' && !s.bezig, s.hoofd);
+  await doe('anim moonwalk'); await stap(4); s = await status();
+  test('a moonwalk on a window: he slides back and forth and stays up there', s.hoofd.y === 400 && s.vensters.staOp === 'chrome' && !s.bezig, s.hoofd);
+  await doe('sit', 'wait 1', 'say Up here!'); await stap(1.5); s = await status();
+  test('sitting and talking on a window works as usual', s.hoofd.houding === 'zit' && s.hoofd.y === 400 && /Up here/.test(s.hoofd.zegt || ''), s.hoofd);
+  await foto('sitting-on-window', { gebied: { x: 700, y: 200, w: 900, h: 840 } });
+  await doe('stop', 'stand'); await stap(1);
+  s = await status();
+  const mx2 = s.hoofd.x, my2 = s.hoofd.y - 30;
+  await v({ wat: 'muis', x: mx2 - 400, y: my2 - 200 }); u = await v({ wat: 'muis', x: mx2, y: my2 });
+  await v({ wat: 'muis', soort: 'neer' }); await v({ wat: 'muis', soort: 'op' }); await stap(2.5); s = await status();
+  test('clicking him on a window: a heart and a hop, and he is still up there', u.vast && s.hoofd.y === 400 && s.vensters.staOp === 'chrome', s.hoofd);
+  await v({ wat: 'muis', x: 5, y: 5 }); await v({ wat: 'muis', x: 6, y: 6 });
+  await doe('climb right 40%'); await stap(30); s = await status();
+  test('climb from a window: he first goes down to the floor and then climbs the wall', s.hoofd.waar === 'rechtermuur' && !s.vensters.staOp, s.hoofd);
+  await reset();
+  // jumping from window to window, many times
+  await vens([A, B, WIN(1005, 1600, 300, 450, 400, 'editor'), WIN(1006, 2300, 700, 700, 250, 'player')]);
+  const staatNu = async () => { const st = await status(); const p = [A, B, WIN(1005, 1600, 300, 450, 400, 'editor'), WIN(1006, 2300, 700, 700, 250, 'player')].find(w => w.p === st.vensters.staOp); return { st, p }; };
+  const misser = [], plekken = new Set();
+  for (let i = 0; i < 16; i++) {
+    await doe('perch random'); await stap(3.6, 1 / 30);
+    const { st, p } = await staatNu();
+    if (!p || st.hoofd.y !== p.y || st.hoofd.x < p.x || st.hoofd.x > p.x + p.w || st.hoofd.lucht) misser.push(i + ': ' + JSON.stringify(st.hoofd) + ' ' + st.vensters.staOp);
+    else plekken.add(p.p);
+  }
+  test('perch random, 16 times in a row from window to window: he always lands on a window', !misser.length && plekken.size >= 3, { misser: misser.slice(0, 3), plekken: [...plekken] });
+  await foto('windows-scene', { gebied: { x: 200, y: 200, w: 3000, h: 840 } });
+  await doe('perch higher'); await stap(3.6, 1 / 30); s = await status();
+  test('perch higher: to a window that is higher than where he stands', !!s.vensters.staOp, s.hoofd);
+  // by himself, all the time, with windows around: nobody tells him anything
+  await doe('stop', 'land'); await stap(5); await doe('roam on');
+  let eerst = -1;
+  for (let i = 0; i < 40 && eerst < 0; i++) { await stap(1, 1 / 30); s = await status(); if (s.vensters.staOp) eerst = i + 1; }
+  test('roam on with windows around: within half a minute he has jumped up onto one by himself', eerst > 0 && eerst <= 30, eerst);
+  let opVenster = 0, f2 = (await status()).foutTel, binnen2 = true, laatste2 = null, wissels = 0;
+  const bezocht = new Set();
+  for (let i = 0; i < 72; i++) {
+    await stap(5, 1 / 30); s = await status();
+    const nu = s.vensters.staOp ? s.vensters.gId : null;
+    if (nu) { opVenster++; bezocht.add(nu); if (laatste2 && laatste2 !== nu) wissels++; laatste2 = nu; }
+    if (s.hoofd.x < 0 || s.hoofd.x > W || s.hoofd.y > VL || s.hoofd.y < 0) binnen2 = false;
+  }
+  s = await status();
+  test('6 minutes by himself with windows around: he is up on them most of the time (' + opVenster + ' of 72 looks)', opVenster >= 50, { opVenster });
+  test('... and he jumps from one window to another again and again, on all of them (' + wissels + ' jumps, ' + bezocht.size + ' windows)', wissels >= 8 && bezocht.size >= 3, { wissels, bezocht: bezocht.size });
+  test('... stays on screen and there are no errors', binnen2 && s.foutTel === f2, { binnen2, fouten: s.fouten });
+  await vens([]); await doe('stop', 'roam off'); await stap(4); s = await status();
+  test('all windows gone: he is back on the floor', s.hoofd.y === VL && !s.vensters.staOp && !s.hoofd.lucht, s.hoofd);
+  u = await v({ wat: 'schoon' });
+  test('standing on windows: the canvas stays clean', u.vuil === 0, u);
+  await reset();
+
+  // ---- his own look ----
+  s = await status();
+  test('look: by default he looks exactly like the little guy you know: nothing extra', s.uiterlijk.stijl.top === 'geen' && s.uiterlijk.stijl.vlek === 'geen' && s.uiterlijk.stijl.wangen === false && s.uiterlijk.kleur === '#d97757', s.uiterlijk);
+  await foto('look-default', { gebied: { x: 860, y: 880, w: 200, h: 160 } });
+  await doe('unique top antennae', 'unique pattern belly', 'unique cheeks on'); await stap(0.3); s = await status();
+  test('look: antennae, a belly patch and rosy cheeks are there when you ask for them', s.uiterlijk.stijl.top === 'antenne' && s.uiterlijk.stijl.vlek === 'buik' && s.uiterlijk.stijl.wangen === true, s.uiterlijk);
+  await foto('look-antennae', { gebied: { x: 860, y: 880, w: 200, h: 160 } });
+  await doe('unique thom'); await stap(0.3); const e1 = (await status()).uiterlijk;
+  await doe('unique anna'); await stap(0.3); const e2 = (await status()).uiterlijk;
+  await doe('unique THOM '); await stap(0.3); const e3 = (await status()).uiterlijk;
+  test('unique <name>: the same name always gives the same look, another name another look', JSON.stringify(e1) === JSON.stringify(e3) && JSON.stringify(e1) !== JSON.stringify(e2), { e1, e2, e3 });
+  const verschil = new Set();
+  for (const n of ['maatje', 'robin', 'sam', 'lotte', 'mila', 'daan', 'noor', 'finn', 'tess', 'liam', 'eva', 'jesse', 'luuk', 'zoe', 'bram', 'fleur', 'sven', 'isa', 'tim', 'lena']) { await doe('unique ' + n); await stap(0.05); const ee = (await status()).uiterlijk; verschil.add(ee.kleur + JSON.stringify(ee.stijl)); }
+  test('unique: twenty names give at least fifteen different looks', verschil.size >= 15, verschil.size);
+  await doe('unique top horns', 'unique pattern stripes', 'unique cheeks off'); await stap(0.5); s = await status();
+  test('unique top / pattern / cheeks: one thing at a time', s.uiterlijk.stijl.top === 'hoorns' && s.uiterlijk.stijl.vlek === 'strepen' && s.uiterlijk.stijl.wangen === false, s.uiterlijk);
+  u = await doe('unique top banana');
+  test('unique top: a wrong word is explained', !u.ok && /antennae\|ears\|horns\|tuft\|none/.test(u.fouten[0].tekst), u);
+  u = await doe('unique cheeks maybe');
+  test('unique cheeks: only on or off', !u.ok, u);
+  await doe('unique classic'); await stap(0.3); s = await status();
+  test('unique classic: back to the normal look, nothing extra', s.uiterlijk.stijl.top === 'geen' && s.uiterlijk.stijl.vlek === 'geen' && s.uiterlijk.stijl.wangen === false, s.uiterlijk);
+  await doe('unique thom', 'unique default'); await stap(0.3); s = await status();
+  test('unique default means the same: the normal look (the colour goes back to orange too with "color orange")', s.uiterlijk.stijl.top === 'geen' && s.uiterlijk.stijl.vlek === 'geen' && s.uiterlijk.stijl.wangen === false, s.uiterlijk);
+  await doe('color orange');
+  await doe('unique', 'wait 0.3'); await stap(0.6); const w1 = (await status()).uiterlijk;
+  await doe('unique'); await stap(0.6); const w2 = (await status()).uiterlijk;
+  test('unique (no name): a surprise every time', JSON.stringify(w1) !== JSON.stringify(w2), { w1, w2 });
+  await doe('unique top antennae', 'color orange', 'clone 2'); await stap(2); s = await status();
+  test('friends have the same look as he has', s.figuren === 3 && s.uiterlijk.stijl.top === 'antenne', s.uiterlijk);
+  await doe('cleanup'); await stap(0.5);
+  nr = 0;
+  const NAMEN = ['classic', 'thom', 'anna', 'maatje', 'robin', 'sam', 'lotte', 'mila', 'daan', 'noor', 'finn', 'tess', 'liam', 'eva', 'jesse', 'luuk', 'zoe', 'bram', 'fleur', 'sven', 'isa', 'tim', 'lena'];
+  for (const n of NAMEN) {
+    await doe('hat none', 'unique ' + n); await stap(0.4);
+    await foto('unique-' + String(nr++).padStart(2, '0') + '-' + n, { gebied: { x: 860, y: 900, w: 200, h: 140 } });
+  }
+  for (const h of ['crown', 'cap', 'tophat', 'headphones']) { await doe('unique top antennae', 'unique pattern belly', 'unique cheeks on', 'hat ' + h); await stap(0.4); await foto('unique-hat-' + h, { gebied: { x: 860, y: 900, w: 200, h: 140 } }); }
+  await doe('hat none', 'unique classic', 'color orange'); await stap(0.5);
+  u = await v({ wat: 'schoon' });
+  test('his own look: the canvas stays clean', u.vuil === 0, u);
 
   // ---- the shows in the folder "shows" ----
   const showFouten = [];

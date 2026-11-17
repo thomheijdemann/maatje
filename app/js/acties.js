@@ -93,7 +93,7 @@ function plekX(tok, f, vrij) {
   else if (t === 'rechts') x = sch.x + sch.w - mar;
   else if (t === 'midden') x = sch.x + sch.w / 2;
   else if (t === 'muis') x = M.muis.x > -9000 ? M.muis.x : f.x;
-  else if (t === 'ergens') x = sch.x + mar + M.rnd() * (sch.w - 2 * mar);
+  else if (t === 'ergens') { const p = f.gId && M.plat.op.get(f.gId); if (p) { const d = p.delen[Math.floor(M.rnd() * p.delen.length)]; x = d[0] + mar + M.rnd() * Math.max(0, d[1] - d[0] - 2 * mar); } else x = sch.x + mar + M.rnd() * (sch.w - 2 * mar); }
   else if (t[0] === '+' || t[0] === '-') x = f.x + parseFloat(t);
   else if (t.endsWith('%')) x = sch.x + sch.w * parseFloat(t) / 100;
   else x = (m[1] ? sch.x : 0) + parseFloat(t);
@@ -114,9 +114,10 @@ function plekY(tok, f, x) {
 function loopNaar(f, doel, v) {
   return {
     stap(dt) {
+      if (f.lucht) return false;                         // van een venster afgestapt of gevallen: eerst weer landen, dan verder
       const d = doel - f.x, st = v * f.vs() * dt;
-      if (Math.abs(d) <= st) { f.x = doel; f.y = M.vloer(f.x); return true; }
-      f.kijk = d > 0 ? 1 : -1; f.x += f.kijk * st; f.y = M.vloer(f.x); f.loopPose(st, v > 250);
+      if (Math.abs(d) <= st) { f.x = doel; f.y = f.vloerY(f.x); return true; }
+      f.kijk = d > 0 ? 1 : -1; f.x += f.kijk * st; f.y = f.vloerY(f.x); f.loopPose(st, v > 250);
       return false;
     },
   };
@@ -152,6 +153,7 @@ function naarVlak(f, nieuw) {
   return {
     stap(dt) {
       if (!P) {
+        f.gId = 0;
         P = hoekPunt(f, f.vlak, nieuw);
         let d = VLAKHOEK[f.vlak] - VLAKHOEK[nieuw];
         while (d > Math.PI) d -= 2 * Math.PI;
@@ -195,6 +197,7 @@ function vlieg(f, tx, ty) {
     stap(dt) {
       if (!begonnen) {
         begonnen = true;
+        f.gId = 0;
         if (f.vlak !== 0) f.laatLos();
         f.lucht = false; f.vliegt = true; f.rol = 0; f.rolV = 0; f.vx = 0; f.vy = 0; f.houding = null;
         M.klank('raket');
@@ -207,22 +210,34 @@ function vlieg(f, tx, ty) {
     },
   };
 }
-function land(f) {
+function land(f) {                                  // naar beneden: vanuit de lucht, van een muur of van een venster
   return {
     stap(dt) {
       if (f.vlak !== 0) f.laatLos();
+      if (f.gId) f.valVan();
       if (!f.vliegt) return !f.lucht;
-      const vl = M.vloer(f.x);
+      const o = M.ondergrond(f.x, f.y);                 // een venster onder hem, of de vloer
       f.y += 420 * dt;
-      if (f.y >= vl) { f.y = vl; f.vliegt = false; f.plet = 0.14; M.stof(f.x, vl, 6); M.klank('land'); return true; }
+      if (f.y >= o.y) { f.y = o.y; f.vliegt = false; f.plet = 0.14; if (o.plat) f.staOp(o.plat); M.stof(f.x, o.y, 6); M.klank('land'); return true; }
       return false;
     },
   };
 }
+/* op een venster springen: kies er een (zie M.plat.kies), spring er precies naartoe */
+function bovenop(f, wat) {
+  return reeks([
+    () => {
+      const d = M.plat.kies(f, wat);
+      if (!d) { f.emote = { naam: 'vraag', t: 0, duur: 1.4 }; f.ogen = 'sip'; f.ogenTot = M.t + 1.4; return wacht(1.2); }     // geen venster dat hij haalt
+      f.kijk = d.x > f.x ? 1 : -1;
+      return spring(f, d.plan.A, { vx: d.plan.vx });
+    },
+  ]);
+}
 function teleport(f, x) {
   return reeks([
     () => { M.uiteen(f); f.zichtbaar = false; f.bel = null; M.klank('teleport'); return wacht(0.3); },
-    () => { f.x = x; f.y = M.vloer(x); M.samen(f, 0.28); return wacht(0.28); },
+    () => { f.gId = 0; f.x = x; f.y = M.vloer(x); M.samen(f, 0.28); return wacht(0.28); },
     () => { f.zichtbaar = true; f.plet = 0.1; const m = f.midden(); M.vonken(m.x, m.y, 10, ['#ffffff', '#bfe9ff', f.kleurNu], 160); return null; },
   ]);
 }
@@ -315,7 +330,7 @@ function voetbal(f, duur, eenKeer) {
       const b = M.bal || M.maakBal(f), s = f.maat, kant = b.x > f.x ? 1 : -1, bereik = 7 * s + b.r, d = Math.abs(b.x - f.x);
       if (d > bereik) {
         const st = Math.min(d - bereik + 2, 420 * f.vs() * dt);
-        f.kijk = kant; f.x = klem(f.x + kant * st, f.marge(), M.W - f.marge()); f.y = M.vloer(f.x); f.loopPose(st, true);
+        f.kijk = kant; f.x = klem(f.x + kant * st, f.marge(), M.W - f.marge()); f.y = f.vloerY(f.x); f.loopPose(st, true);
       } else if (koel <= 0 && b.y > M.vloer(b.x) - b.r - 9 * s) { f.kijk = kant; schop(f, b, kant); koel = 0.5; if (eenKeer) return true; }
       return false;
     },
@@ -325,7 +340,7 @@ M.nieuweKloon = function () {
   const L = M.hoofd, n = M.figuren.length;
   if (n >= 13) return null;
   const m = L.midden();
-  const k = new Figuur({ x: m.x, kleur: KLOONKLEUR[(n - 1) % KLOONKLEUR.length], maat: Math.max(2, L.maat - 2), leider: L, slot: n });
+  const k = new Figuur({ x: m.x, kleur: KLOONKLEUR[(n - 1) % KLOONKLEUR.length], maat: Math.max(2, L.maat - 2), leider: L, slot: n, stijl: L.stijl });
   k.x = klem(k.x, k.marge(), M.W - k.marge()); k.y = Math.min(m.y, M.vloer(k.x));
   k.lucht = true; k.vy = -520 - M.rnd() * 260; k.vx = (M.rnd() - 0.5) * 520; k.kijk = L.kijk;
   M.figuren.push(k); M.plof(k.x, k.y - 20, k.kleur);
@@ -356,9 +371,27 @@ opdracht('vlieg', {
   },
   maak: (f, a) => { const x = plekX(a.x, f); return vlieg(f, x, plekY(a.y, f, x)); },
 });
-opdracht('land', { soort: 'movement', hulp: 'comes back down to the floor (after fly or climb)', vb: 'land', lees: geen, ook: ['val', 'drop'], maak: f => land(f) });
+opdracht('land', { soort: 'movement', hulp: 'comes back down to the floor (after fly or climb, or from a window)', vb: 'land', lees: geen, ook: ['val', 'drop'], maak: f => land(f) });
+const PERCHWOORD = { near: 'dichtbij', nearest: 'dichtbij', random: 'toevallig', any: 'toevallig', left: 'links', right: 'rechts', higher: 'hoger', up: 'hoger', dichtbij: 'dichtbij', toevallig: 'toevallig', links: 'links', rechts: 'rechts', hoger: 'hoger' };
+opdracht('bovenop', {
+  en: 'perch', soort: 'movement', hulp: 'jumps onto one of your windows and stands on its top edge: perch [near | random | left | right | higher | the name of a program, like chrome]', vb: 'perch random',
+  ook: ['hop-on', 'neerstrijken'], grond: true, lijf: true,
+  lees: rest => {
+    const t = rest.toLowerCase().trim();
+    if (!t) return { wat: 'dichtbij' };
+    if (PERCHWOORD[t]) return { wat: PERCHWOORD[t] };
+    if (!/^[a-z0-9._-]{1,40}$/.test(t)) throw new Error('like this: perch random   (or near, left, right, higher, or a program such as chrome)');
+    return { wat: t };
+  },
+  maak: (f, a) => bovenop(f, a.wat),
+});
+opdracht('vensters', {
+  en: 'windows', soort: 'movement', hulp: 'he can stand on your windows (he only looks at where they are, never at what is in them): windows on|off', vb: 'windows on',
+  lees: aanUit, stil: true,
+  maak: (f, a) => { M.inst.vensters = a.aan; M.plat.aan = a.aan; M.plat.zet(M.plat.ruw); M.bewaar(); return null; },
+});
 opdracht('klim', {
-  en: 'climb', soort: 'movement', hulp: 'climbs up the side of the screen and hangs there: climb left|right [how high in %]', vb: 'climb right 60%', grond: true, lijf: true,
+  en: 'climb', soort: 'movement', hulp: 'climbs up the side of the screen and hangs there: climb left|right [how high in %]', vb: 'climb right 60%', grond: true, lijf: true, vloer: true,
   lees: rest => {
     const d = rest.toLowerCase().split(/\s+/).filter(Boolean);
     if (d[0]) d[0] = nl('kant', d[0]);
@@ -367,7 +400,7 @@ opdracht('klim', {
   },
   maak: (f, a) => klim(f, a.kant, a.deel),
 });
-opdracht('rondje', { en: 'lap', soort: 'movement', hulp: 'runs one full lap over the walls and the ceiling', vb: 'lap', lees: geen, grond: true, lijf: true, maak: f => rondje(f) });
+opdracht('rondje', { en: 'lap', soort: 'movement', hulp: 'runs one full lap over the walls and the ceiling', vb: 'lap', lees: geen, grond: true, lijf: true, vloer: true, maak: f => rondje(f) });
 
 const metNaam = t => t.replace(/\{(naam|name)\}/gi, M.gebruiker || 'you');      // {name} in een tekst wordt jouw naam op deze pc
 function praat(soort) { return (f, a) => { const b = new Bel(soort, metNaam(a.tekst)); f.bel = b; return zodra(() => f.bel !== b); }; }
@@ -454,8 +487,8 @@ opdracht('zwaard', {
   },
 });
 opdracht('bal', { en: 'ball', soort: 'effects', hulp: 'a ball drops from the sky (you can flick it away with the mouse)', vb: 'ball', lees: geen, stil: true, maak: f => { M.maakBal(f); return wacht(0.2); } });
-opdracht('trap', { en: 'kick', soort: 'effects', hulp: 'runs to the ball and kicks it away', vb: 'kick', lees: geen, lijf: true, grond: true, maak: f => voetbal(f, 8, true) });
-opdracht('voetbal', { en: 'soccer', soort: 'effects', hulp: 'keeps chasing and kicking the ball (add how many seconds)', vb: 'soccer 5', lees: getal(SEC, 1, 120, 8), ook: ['football'], lijf: true, grond: true, maak: (f, a) => voetbal(f, a.n, false) });
+opdracht('trap', { en: 'kick', soort: 'effects', hulp: 'runs to the ball and kicks it away', vb: 'kick', lees: geen, lijf: true, grond: true, vloer: true, maak: f => voetbal(f, 8, true) });
+opdracht('voetbal', { en: 'soccer', soort: 'effects', hulp: 'keeps chasing and kicking the ball (add how many seconds)', vb: 'soccer 5', lees: getal(SEC, 1, 120, 8), ook: ['football'], lijf: true, grond: true, vloer: true, maak: (f, a) => voetbal(f, a.n, false) });
 
 const KLEURLIJST = en('kleur', Object.keys(KLEUREN)).join(', ');
 opdracht('kleur', {
@@ -478,6 +511,57 @@ opdracht('maat', {
   },
 });
 opdracht('hoed', { en: 'hat', soort: 'looks', hulp: 'something on his head: ' + en('hoed', Object.keys(HOEDEN)).join(', '), vb: 'hat crown', lees: keuze('hoed', Object.keys(HOEDEN)), stil: true, maak: (f, a) => { f.hoed = a.k; if (f.hoofd) { M.inst.hoed = a.k; M.bewaar(); } const k = f.kop(); M.vonken(k.x, k.y, 6, ['#ffffff', '#ffe066'], 120); M.klank('pop'); return null; } });
+
+/* ---- zijn eigen uiterlijk: een kleur, wat er bovenop zit, een tekening op zijn lijf en blosjes ----
+   "unique <name>" maakt er altijd dezelfde van voor dezelfde naam: jouw naam geeft jouw eigen Maatje. */
+const UNIEKE_KLEUREN = ['#d97757', '#e5484d', '#6a9bcc', '#78a65a', '#f2c94c', '#9b7ede', '#f08bb4', '#45c4b0', '#e0b030', '#9c6b4a', '#f4f1ea', '#ff8c2b', '#5fa8d3', '#b5838d', '#7bc96f', '#c96ad0'];
+function hasj(tekst) { let h = 2166136261; for (const c of tekst) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; }
+function zaadRnd(zaad) {
+  let z = zaad >>> 0;
+  const r = () => { z = (z + 0x6D2B79F5) >>> 0; let t = z; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  r(); r(); r();                                       // eerst even doorschudden: korte namen lijken anders op elkaar
+  return r;
+}
+M.uniekUitZaad = function (zaad) {
+  const r = zaadRnd(hasj(String(zaad).toLowerCase().trim())), kies = l => l[Math.floor(r() * l.length)];
+  const stijl = { top: kies(['antenne', 'oren', 'hoorns', 'kuif', 'antenne', 'oren', 'geen']), vlek: kies(['buik', 'strepen', 'stippen', 'buik', 'geen']), wangen: r() < 0.6 };
+  if (stijl.top === 'geen' && stijl.vlek === 'geen') stijl.wangen = true;      // altijd íets eigens
+  return { kleur: kies(UNIEKE_KLEUREN), stijl };
+};
+const UNIEK = {
+  top: { antennae: 'antenne', antenne: 'antenne', ears: 'oren', oren: 'oren', horns: 'hoorns', hoorns: 'hoorns', tuft: 'kuif', kuif: 'kuif', none: 'geen', geen: 'geen' },
+  pattern: { belly: 'buik', buik: 'buik', stripes: 'strepen', strepen: 'strepen', spots: 'stippen', stippen: 'stippen', none: 'geen', geen: 'geen' },
+};
+opdracht('uniek', {
+  en: 'unique', soort: 'looks', ook: ['dice'], stil: true,
+  hulp: 'gives him his very own look: unique (a surprise) | unique <your name> (always the same one for the same name) | unique top antennae|ears|horns|tuft|none | unique pattern belly|stripes|spots|none | unique cheeks on|off | unique classic (back to the normal look, with nothing extra)',
+  vb: 'unique thom',
+  lees: rest => {
+    const d = rest.trim().split(/\s+/).filter(Boolean), w = (d[0] || '').toLowerCase();
+    if (!d.length || ['roll', 'random', 'surprise'].includes(w)) return { roll: true };
+    if (['classic', 'plain', 'effen', 'gewoon', 'default', 'normal', 'normaal', 'off', 'uit'].includes(w) && d.length === 1) return { stijl: Object.assign({}, STIJL_STANDAARD) };      // zoals je hem kent
+    if (w === 'top' || w === 'pattern') {
+      const k = UNIEK[w][(d[1] || '').toLowerCase()];
+      if (!k || d.length !== 2) throw new Error('like this: unique ' + w + ' ' + (w === 'top' ? 'antennae|ears|horns|tuft|none' : 'belly|stripes|spots|none'));
+      return { deel: w === 'top' ? 'top' : 'vlek', waarde: k };
+    }
+    if (w === 'cheeks') { const k = nl('aanuit', (d[1] || '').toLowerCase()); if (k !== 'aan' && k !== 'uit') throw new Error('like this: unique cheeks on'); return { deel: 'wangen', waarde: k === 'aan' }; }
+    const naam = rest.trim();
+    if (naam.length > 40) throw new Error('that name is too long (at most 40 letters)');
+    return { zaad: naam };
+  },
+  maak: (f, a) => {
+    if (a.zaad !== undefined || a.roll) {
+      const u = M.uniekUitZaad(a.roll ? 'roll-' + Math.floor(M.rnd() * 1e9) : a.zaad);
+      f.stijl = u.stijl; f.kleur = u.kleur; f.kleurWissel = false;
+    } else if (a.stijl) f.stijl = a.stijl;
+    else f.stijl = Object.assign({}, f.stijl, { [a.deel]: a.waarde });
+    if (f.hoofd) { M.inst.stijl = Object.assign({}, f.stijl); M.inst.kleur = f.kleur; M.bewaar(); }
+    const m = f.midden();
+    M.vonken(m.x, m.y, 12, ['#ffffff', '#ffe066', f.kleur], 190); M.klank('pop');
+    return null;
+  },
+});
 
 opdracht('kloon', { en: 'clone', soort: 'friends', hulp: 'friends appear who follow him and copy what he does (at most 12)', vb: 'clone 3', lees: getal('the number of friends', 1, 12, 3), stil: true, maak: (f, a) => { for (let i = 0; i < Math.round(a.n); i++) M.nieuweKloon(); return wacht(0.3); } });
 opdracht('opruimen', {

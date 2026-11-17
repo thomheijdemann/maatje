@@ -75,6 +75,8 @@
       figuren: M.figuren.length, effecten: M.fx.length, deeltjes: M.delen.length,
       bal: M.bal ? { x: Math.round(M.bal.x), y: Math.round(M.bal.y), vx: Math.round(M.bal.vx) } : null,
       vrij: M.inst.vrij, geluid: M.inst.geluid, muisVast: M.muisVast, fps: M.fps,
+      vensters: Object.assign(M.plat.status(), { staOp: f.gId ? (M.plat.op.get(f.gId) || {}).prog || '?' : null, gId: f.gId, vinder: M.vindStand || null }),
+      uiterlijk: { stijl: f.stijl, kleur: f.kleur },
       animaties: { aantal: M.anim.lijst.length, eigen: M.anim.lijst.filter(a => a.eigen).length, fouten: M.anim.fouten.length, skin: f.skin ? f.skin.naam : null, beeld: f.beeld ? f.beeld.naam : null, prop: f.prop ? f.prop.naam : null, dy: +f.pose.dy.toFixed(2), rol: +f.animRol.toFixed(2) },
       meeleven: { aan: M.inst.meeleven, sessies: Object.keys(M.werk.sessies).length, werkt: M.werkActief(), hulpjes: M.figuren.filter(k => k.hulpje).length, typt: !!f.nu && f.nuNaam === 'werk' },
       fouten: M.fouten.slice(-6), foutTel: M.foutTel, klanken: M.proef ? G.tel : undefined,
@@ -127,6 +129,7 @@
         return { ok: true, vuil: n, eerste };
       }
       case 'zaai': M.zaai(b.zaad || 1); return { ok: true };
+      case 'vensters': M.plat.zet(b.lijst || []); return { ok: true, platforms: M.plat.lijst.length };      // nagemaakte vensters (de proef heeft geen echte)
       case 'zet': {                                   // een eigenschap zetten, bijvoorbeeld hoofd.hoed
         const d = String(b.pad).split('.');
         let o = M;
@@ -146,8 +149,9 @@
   });
   app.opWereld(w => {
     M.zetWereld(w);
-    for (const f of M.figuren) { if (f.vlak !== 0 || f.vliegt) f.laatLos(); f.x = klem(f.x, f.marge(), M.W - f.marge()); if (!f.lucht && !f.gepakt) f.y = M.vloer(f.x); }
+    for (const f of M.figuren) { f.gId = 0; if (f.vlak !== 0 || f.vliegt) f.laatLos(); f.x = klem(f.x, f.marge(), M.W - f.marge()); if (!f.lucht && !f.gepakt) f.y = M.vloer(f.x); }
   });
+  app.opVensters(l => { M.vindStand = { n: l.length, t: Math.round(M.t) }; M.plat.zet(l); });      // de vensters op het scherm, van het zoekprogramma
   app.opBegin(d => {
     M.proef = !!d.proef;
     M.gebruiker = d.gebruiker || 'you';
@@ -155,7 +159,9 @@
     M.zetWereld(d.wereld);
     if (d.zaad) M.zaai(d.zaad);
     const s0 = M.schermen[d.wereld.eerste || 0] || M.schermen[0];
-    const f = new Figuur({ x: Math.round(s0.x + s0.w * 0.72), kleur: M.inst.kleur, maat: M.inst.maat, hoed: M.inst.hoed, hoofd: true });
+    if (!M.inst.stijl) M.inst.stijl = Object.assign({}, STIJL_STANDAARD);
+    M.plat.aan = M.inst.vensters !== false;
+    const f = new Figuur({ x: Math.round(s0.x + s0.w * 0.72), kleur: M.inst.kleur, maat: M.inst.maat, hoed: M.inst.hoed, hoofd: true, stijl: Object.assign({}, M.inst.stijl) });
     M.figuren.push(f); M.hoofd = f;
     if (!M.proef) {                                   // hij komt uit de lucht vallen en zwaait
       f.y = s0.y - 30; f.lucht = true;

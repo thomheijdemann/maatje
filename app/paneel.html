@@ -81,6 +81,8 @@
     <div class="blad" id="blad-inst">
       <h2>What he does</h2>
       <label class="schakel"><input type="checkbox" id="t-vrij"><span>Wander around by himself</span></label>
+      <label class="schakel"><input type="checkbox" id="t-vensters"><span>Stand on your windows <i>(he jumps onto the top edge of your programs and walks along it. He only looks at where the windows are, never at what is in them)</i></span></label>
+      <div id="v-stand" class="tip"></div>
       <label class="schakel"><input type="checkbox" id="t-geluid"><span>Sound</span></label>
       <label class="schakel"><input type="checkbox" id="t-meeleven"><span>Follow along with Claude Code <i>(types while Claude works, waves when Claude needs you, cheers when it is done)</i></span></label>
       <div class="rij">
@@ -106,6 +108,25 @@
         <button id="k-skinuit" class="knop">Back to himself</button>
       </div>
 
+      <h2>Make him unique</h2>
+      <p class="tip">If you like, he can get a look of his own. Type your name and he gets one that is only yours: always the same one for the same name. Or roll the dice, or choose every part yourself. He stays exactly as you know him until you do.</p>
+      <div class="rij">
+        <input id="u-naam" type="text" maxlength="40" placeholder="your name" spellcheck="false" autocomplete="off">
+        <button id="u-doe" class="knop hoofd">Make me unique</button>
+        <button id="u-gok" class="knop">Roll the dice</button>
+      </div>
+      <div class="rij wrap" style="margin-top:10px">
+        <span class="tip">On top</span>
+        <select id="u-top"><option value="none">nothing</option><option value="antennae">antennae</option><option value="ears">ears</option><option value="horns">horns</option><option value="tuft">a tuft</option></select>
+        <span class="tip">Pattern</span>
+        <select id="u-vlek"><option value="none">nothing</option><option value="belly">belly patch</option><option value="stripes">stripes</option><option value="spots">spots</option></select>
+        <label class="schakel" style="padding:0"><input type="checkbox" id="u-wangen"><span>Rosy cheeks</span></label>
+      </div>
+      <div class="rij wrap" style="margin-top:10px">
+        <button id="u-klassiek" class="knop">Back to the normal look</button>
+      </div>
+      <div id="u-uit" class="melding"></div>
+
       <h2>Tell him what to do</h2>
       <div class="rij">
         <input id="o-tekst" type="text" placeholder="walk middle; say Hi!; jump" spellcheck="false" autocomplete="off">
@@ -125,6 +146,7 @@
 <script src="js/basis.js"></script>
 <script src="js/letters.js"></script>
 <script src="js/figuur.js"></script>
+<script src="js/platform.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/acties.js"></script>
 <script src="js/anim-data.js"></script>

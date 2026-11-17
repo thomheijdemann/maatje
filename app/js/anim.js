@@ -19,7 +19,7 @@ function leegBlad() { return { y: 0, x: 0, lijf: 0, tilt: 0, rol: 0, sx: 1, sy: 
 /* echt van plek veranderen (go, dash, moon, slide): a = aantal pixels, min is naar links */
 function verplaats(o, k, a, f, c, ren) {
   const x = klem(c.x0 + a * zacht(k), f.marge(), M.W - f.marge());
-  f.x = x; f.y = M.vloer(x); f.liep = true;
+  f.x = x; if (!f.lucht) f.y = f.vloerY(x); f.liep = true;
   const fase = Math.abs(a) * zacht(k) / (f.maat * (ren ? 3.2 : 2.2)), p = Math.floor(fase) & 1, kort = ren ? 0.8 : 1.2;
   o.poten = p ? [kort, 2, kort, 2] : [2, kort, 2, kort];
   o.lijf += Math.sin((fase % 1) * Math.PI) * (ren ? 0.5 : 0.25);
@@ -83,7 +83,7 @@ const BEW = {
   go: [0, (o, k, a, f, c) => { f.kijk = a > 0 ? 1 : -1; verplaats(o, k, a, f, c, false); }],
   dash: [0, (o, k, a, f, c) => { f.kijk = a > 0 ? 1 : -1; verplaats(o, k, a, f, c, true); o.tilt += 0.1 * f.kijk; }],
   moon: [0, (o, k, a, f, c) => { f.kijk = a > 0 ? -1 : 1; verplaats(o, k, a, f, c, false); o.tilt += 0.08 * f.kijk; }],
-  slide: [0, (o, k, a, f, c) => { f.x = klem(c.x0 + a * (1 - (1 - k) * (1 - k)), f.marge(), M.W - f.marge()); f.y = M.vloer(f.x); o.tilt -= 0.25 * Math.sign(a) * (1 - k); o.lijf -= 0.5 * (1 - k); }],
+  slide: [0, (o, k, a, f, c) => { f.x = klem(c.x0 + a * (1 - (1 - k) * (1 - k)), f.marge(), M.W - f.marge()); if (!f.lucht) f.y = f.vloerY(f.x); o.tilt -= 0.25 * Math.sign(a) * (1 - k); o.lijf -= 0.5 * (1 - k); }],
 };
 const SNELHEID = { go: 120, dash: 420, moon: 150, slide: 520 };          // pixels per seconde
 
