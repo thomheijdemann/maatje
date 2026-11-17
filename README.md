@@ -169,5 +169,5 @@ Maatje is een fanproject. Het poppetje is nagetekend naar het mannetje van Claud
 is van [Anthropic](https://www.anthropic.com). Dit project hoort niet bij Anthropic en is niet door
 Anthropic gemaakt of goedgekeurd. "Claude" is een merk van Anthropic.
 
-De code heeft de MIT-licentie (zie `LICENSE`): je mag hem gebruiken, veranderen en doorgeven.
+De code heeft de MIT-licentie (zie `LICENSE` en `NOTICE.md`): je mag hem gebruiken, veranderen en doorgeven.
 Bijna alle code is geschreven door Claude, op verzoek van de maker.
