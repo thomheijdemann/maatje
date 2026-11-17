@@ -10,7 +10,7 @@ const M = window.M = {
   schermen: [{ x: 0, y: 0, w: 1920, h: 1040 }],
   t: 0, figuren: [], hoofd: null, fx: [], delen: [], bal: null,
   muis: { x: -9999, y: -9999, vx: 0, vy: 0, t: -99, klok: 0 },
-  inst: { kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, stijl: { top: 'geen', vlek: 'geen', wangen: false } },
+  inst: { naam: 'Maatje', kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, stijl: { top: 'geen', vlek: 'geen', wangen: false } },
   // meeleven met Claude: welke sessies zijn aan het werk (komt binnen via haak.js), zie brein.js
   werk: { sessies: {}, reactieTot: 0, vertrekNa: 0, spawnNa: 0, klaarKoel: 0, nodigKoel: 0 },
   proef: false, pauze: false, druk: true,
@@ -165,5 +165,5 @@ M.klank = function (naam, n) {
 M.bewaar = function () {
   if (M.proef || !window.maatjeApp) return;
   const i = M.inst;
-  window.maatjeApp.bewaar({ kleur: i.kleur, maat: i.maat, hoed: i.hoed, geluid: i.geluid, vrij: i.vrij, meeleven: i.meeleven, skin: i.skin || '', vensters: i.vensters !== false, stijl: i.stijl });
+  window.maatjeApp.bewaar({ naam: i.naam, kleur: i.kleur, maat: i.maat, hoed: i.hoed, geluid: i.geluid, vrij: i.vrij, meeleven: i.meeleven, skin: i.skin || '', vensters: i.vensters !== false, stijl: i.stijl });
 };

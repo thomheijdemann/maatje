@@ -9,12 +9,12 @@
 <body>
 <header>
   <canvas id="logo" width="56" height="40"></canvas>
-  <h1>MAATJE</h1>
+  <h1 id="naam">MAATJE</h1>
   <span id="versie"></span>
   <span class="veer"></span>
   <span id="waar" class="stip">on your desktop</span>
   <button id="k-zicht" class="knop">Hide</button>
-  <button id="k-stop" class="knop gevaar" title="Shuts Maatje down completely">Quit Maatje</button>
+  <button id="k-stop" class="knop gevaar" title="Shuts him down completely">Quit Maatje</button>
 </header>
 <main>
   <aside>
@@ -93,6 +93,12 @@
       <p class="tip">Connecting adds a few lines to the settings of Claude Code on this pc (a backup is made first). Disconnect takes them out again.</p>
 
       <h2>What he looks like</h2>
+      <div class="rij" style="margin-bottom:10px">
+        <span class="tip">His name</span>
+        <input id="n-naam" type="text" maxlength="20" placeholder="Maatje" spellcheck="false" autocomplete="off">
+        <button id="n-bewaar" class="knop">Change name</button>
+      </div>
+      <div id="n-uit" class="melding"></div>
       <div id="kleuren" class="rij wrap"></div>
       <div class="rij">
         <span class="tip">Size</span>

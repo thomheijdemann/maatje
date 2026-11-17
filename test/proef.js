@@ -177,7 +177,7 @@ async function proeven() {
   }
   test('every example from the help runs without errors', !kapot.length, kapot);
   test('after every example nothing is left on the canvas once it is erased', !smeer.length, smeer);
-  await doe('stop', 'cleanup', 'land', 'color orange', 'unique classic', 'windows on', 'hat none', 'eyes normal', 'rainbow off', 'roam off', 'run s1:middle'); await stap(12);     // (the help example "unique thom" gave him another look)
+  await doe('stop', 'cleanup', 'land', 'color orange', 'unique classic', 'name Maatje', 'windows on','hat none', 'eyes normal', 'rainbow off', 'roam off', 'run s1:middle'); await stap(12);     // (the help example "unique thom" gave him another look)
   s = await status();
   test('back to normal: on the floor, orange, alone', s.hoofd.y === VL && s.hoofd.waar === 'vloer' && s.figuren === 1 && s.hoofd.kleur === '#d97757' && s.hoofd.maat === 6, s.hoofd);
 
@@ -724,6 +724,20 @@ async function proeven() {
   await doe('hat none', 'unique classic', 'color orange'); await stap(0.5);
   u = await v({ wat: 'schoon' });
   test('his own look: the canvas stays clean', u.vuil === 0, u);
+
+  // ---- his name ----
+  s = await status();
+  test('name: he is called Maatje until you say otherwise', s.naam === 'Maatje', s.naam);
+  await doe('name Claude', 'say Hi, I am {pet}!'); await stap(0.6); s = await status();
+  test('name Claude: he is called Claude and says so when you use {pet}', s.naam === 'Claude' && /Hi, I am Claude!/.test(s.hoofd.zegt || ''), { naam: s.naam, zegt: s.hoofd.zegt });
+  u = await doe('name');
+  test('name: a name is needed', !u.ok, u);
+  u = await doe('name ' + 'x'.repeat(21));
+  test('name: at most 20 letters', !u.ok && /20/.test(u.fouten[0].tekst), u);
+  u = await doe('name <b>hi</b>');
+  test('name: no strange signs', !u.ok, u);
+  await doe('stop', 'name Maatje'); await stap(0.3); s = await status();
+  test('name: and back again', s.naam === 'Maatje', s.naam);
 
   // ---- the shows in the folder "shows" ----
   const showFouten = [];

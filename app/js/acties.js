@@ -402,9 +402,9 @@ opdracht('klim', {
 });
 opdracht('rondje', { en: 'lap', soort: 'movement', hulp: 'runs one full lap over the walls and the ceiling', vb: 'lap', lees: geen, grond: true, lijf: true, vloer: true, maak: f => rondje(f) });
 
-const metNaam = t => t.replace(/\{(naam|name)\}/gi, M.gebruiker || 'you');      // {name} in een tekst wordt jouw naam op deze pc
+const metNaam = t => t.replace(/\{(naam|name)\}/gi, M.gebruiker || 'you').replace(/\{(pet|hij)\}/gi, M.inst.naam || 'Maatje');      // {name} = jouw naam op deze pc, {pet} = zijn eigen naam
 function praat(soort) { return (f, a) => { const b = new Bel(soort, metNaam(a.tekst)); f.bel = b; return zodra(() => f.bel !== b); }; }
-opdracht('zeg', { en: 'say', soort: 'talking', hulp: 'speech bubble; he waits until you have read it (put + in front to carry on right away); {name} becomes your name', vb: "say Hi! I'm Maatje.", lees: tekstArg, magInLucht: true, maak: praat('zeg') });
+opdracht('zeg', { en: 'say', soort: 'talking', hulp: 'speech bubble; he waits until you have read it (put + in front to carry on right away); {name} becomes your name and {pet} his own name', vb: "say Hi! I'm {pet}.", lees: tekstArg, magInLucht: true, maak: praat('zeg') });
 opdracht('denk', { en: 'think', soort: 'talking', hulp: 'thought bubble', vb: 'think Hmm...', lees: tekstArg, magInLucht: true, maak: praat('denk') });
 opdracht('roep', { en: 'shout', soort: 'talking', hulp: 'big letters', vb: 'shout DONE!', lees: tekstArg, magInLucht: true, maak: praat('roep') });
 opdracht('fluister', { en: 'whisper', soort: 'talking', hulp: 'grey and slow', vb: 'whisper psst', lees: tekstArg, magInLucht: true, maak: praat('fluister') });
@@ -563,6 +563,16 @@ opdracht('uniek', {
   },
 });
 
+opdracht('naam', {
+  en: 'name', soort: 'looks', hulp: 'what he is called (in the window, next to the clock and when he says {pet}): name Claude', vb: 'name Claude', stil: true,
+  lees: rest => {
+    const n = rest.trim();
+    if (!n) throw new Error('what should he be called? for example: name Claude');
+    if (n.length > 20 || !/^[A-Za-z0-9 .'-]+$/.test(n)) throw new Error('a name of at most 20 letters, numbers, spaces, dots, dashes or apostrophes');
+    return { naam: n };
+  },
+  maak: (f, a) => { M.inst.naam = a.naam; M.bewaar(); const m = f.midden(); M.vonken(m.x, m.y, 10, ['#ffffff', '#ffe066', f.kleurNu], 170); M.klank('pop'); return null; },
+});
 opdracht('kloon', { en: 'clone', soort: 'friends', hulp: 'friends appear who follow him and copy what he does (at most 12)', vb: 'clone 3', lees: getal('the number of friends', 1, 12, 3), stil: true, maak: (f, a) => { for (let i = 0; i < Math.round(a.n); i++) M.nieuweKloon(); return wacht(0.3); } });
 opdracht('opruimen', {
   en: 'cleanup', soort: 'friends', hulp: 'friends, ball, snow and rainbow away', vb: 'cleanup', lees: geen, ook: ['clear'], stil: true,

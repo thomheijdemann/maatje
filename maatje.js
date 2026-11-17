@@ -121,7 +121,7 @@ function engelsStatus(s) {
     pet: {
       x: h.x, y: h.y, on: { vloer: 'floor', rechtermuur: 'right wall', plafond: 'ceiling', linkermuur: 'left wall' }[h.waar] || h.waar,
       inTheAir: h.lucht, flying: h.vliegt, heldByMouse: h.gepakt, posture: { zit: 'sitting', slaap: 'sleeping' }[h.houding] || 'standing',
-      color: h.kleur, size: h.maat, hat: h.hoedEn, doing: h.doetEn, queued: h.wachtrij, says: h.zegt, visible: h.zichtbaar,
+      name: s.naam, color: h.kleur, size: h.maat, hat: h.hoedEn, doing: h.doetEn, queued: h.wachtrij, says: h.zegt, visible: h.zichtbaar,
       standingOnWindowOf: s.vensters ? s.vensters.staOp : null, look: s.uiterlijk ? { top: { geen: 'none', antenne: 'antennae', oren: 'ears', hoorns: 'horns', kuif: 'tuft' }[s.uiterlijk.stijl.top], pattern: { geen: 'none', buik: 'belly', strepen: 'stripes', stippen: 'spots' }[s.uiterlijk.stijl.vlek], cheeks: s.uiterlijk.stijl.wangen, color: s.uiterlijk.kleur } : null,
     },
     windows: s.vensters ? { standOnWindows: s.vensters.aan, seen: s.vensters.vensters, platforms: s.vensters.platforms } : null,

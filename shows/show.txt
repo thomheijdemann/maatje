@@ -1,4 +1,4 @@
-# Maatje's show. One command per line. All commands: node maatje.js help
+# The show. One command per line. All commands: node maatje.js help
 # Want your own show? Copy this file, change the lines and play it with:  node maatje.js play <name>
 
 stop
@@ -9,8 +9,8 @@ hat none
 eyes normal
 walk s1:50%
 wave
-say Hi {name}! I'm Maatje.
-say Claude can control me. Watch this!
+say Hi {name}! I'm {pet}.
+say You can tell me what to do. Watch this!
 run 20%
 run 80%
 jump high
@@ -40,7 +40,7 @@ anim rockstar
 anim fire-breath
 
 fly 50% high
-title MAATJE
+title {pet}
 wait 4
 land
 cleanup

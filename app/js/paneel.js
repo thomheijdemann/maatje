@@ -319,6 +319,9 @@
       await ververs();
     });
     $('k-skinuit').addEventListener('click', () => doe(['skin off']));
+    const naamDoen = async () => { const n = $('n-naam').value.trim(); if (!n) { toon($('n-uit'), 'Type a name first.', true); return; } const u = await doe(['name ' + n], $('n-uit')); if (u.ok) toon($('n-uit'), ''); };
+    $('n-bewaar').addEventListener('click', naamDoen);
+    $('n-naam').addEventListener('keydown', e => { if (e.key === 'Enter') naamDoen(); });
     const uniek = async regel => { const u = await doe([regel], $('u-uit')); if (u.ok) toon($('u-uit'), ''); };
     $('u-doe').addEventListener('click', () => { const n = $('u-naam').value.trim(); if (!n) { toon($('u-uit'), 'Type your name first, or roll the dice.', true); $('u-naam').focus(); return; } uniek('unique ' + n); });
     $('u-naam').addEventListener('keydown', e => { if (e.key === 'Enter') $('u-doe').click(); });
@@ -358,6 +361,9 @@
     const kleurAnders = s.inst.kleur !== f.kleur || JSON.stringify(s.inst.stijl || STIJL_EFFEN) !== JSON.stringify(f.stijl), skinAnders = s.inst.skin !== stand.inst.skin;      // een andere kleur of een ander uiterlijk: de plaatjes opnieuw
     stand = s;
     $('versie').textContent = 'v' + s.versie;
+    const naam = s.inst.naam || 'Maatje';
+    $('naam').textContent = naam.toUpperCase(); document.title = naam; $('k-stop').textContent = 'Quit ' + naam;
+    if (document.activeElement !== $('n-naam')) $('n-naam').value = naam;
     $('waar').textContent = s.zichtbaar ? 'on your desktop' : 'hidden';
     $('waar').classList.toggle('uit', !s.zichtbaar);
     $('k-zicht').textContent = s.zichtbaar ? 'Hide' : 'Show';

@@ -64,7 +64,7 @@
   M.status = function () {
     const f = M.hoofd;
     return {
-      ok: true, versie: M.versie, t: +M.t.toFixed(2), W: M.W, H: M.H, schermen: M.schermen, verborgen: M.pauze, bezig: M.bezig(),
+      ok: true, versie: M.versie, naam: M.inst.naam, t: +M.t.toFixed(2), W: M.W, H: M.H, schermen: M.schermen, verborgen: M.pauze, bezig: M.bezig(),
       hoofd: {
         x: Math.round(f.x), y: Math.round(f.y), waar: VLAKNAAM[f.vlak], lucht: f.lucht, vliegt: f.vliegt, gepakt: f.gepakt, houding: f.houding,
         kleur: f.kleur, maat: f.maat, hoed: f.hoed, doet: f.nu ? f.nuNaam : null, wachtrij: f.rij.length,

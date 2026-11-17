@@ -121,6 +121,13 @@ On top: `antennae`, `ears`, `horns`, `tuft` or `none`. Pattern: `belly`, `stripe
 comes with it (or choose your own with `color`). In the window you find all of this under Settings: type your
 name, roll the dice, or choose every part yourself. Friends copy his look.
 
+## His name
+
+He is called Maatje, but you can call him whatever you like: `name Claude`, or type it in the window
+(Settings, "His name"). The name shows in the window, next to the clock and in what he says: put `{pet}`
+in a text, for example `say Hi, I am {pet}!`. (Maatje is not an official Claude. Claude is a name that belongs to
+[Anthropic](https://www.anthropic.com): it is fine for your own desktop, but do not hand him to others as an official thing.)
+
 ## Animations
 
 ```
@@ -206,7 +213,7 @@ Maatje.exe --do="walk middle; say Hi!; anim victory-dance"
 | Feelings | `emote`, `eyes`, `look`, `wave`, `cheer`, `nod`, `shake`, `bow`, `startle`, `dance`, `sit`, `stand`, `sleep`, `wake`, `type` |
 | Animations | `anim` |
 | Effects | `fireworks`, `laser`, `lightning`, `rainbow`, `snow`, `title`, `sword`, `ball`, `kick`, `soccer` |
-| Looks | `color`, `size`, `hat`, `skin`, `unique` |
+| Looks | `color`, `size`, `hat`, `skin`, `unique`, `name` |
 | Friends | `clone`, `cleanup` |
 | Claude | `work`, `follow` |
 | Other | `wait`, `stop`, `roam`, `sound`, `hide`, `come` |

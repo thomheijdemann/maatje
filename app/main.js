@@ -27,7 +27,8 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 const INSTPAD = path.join(app.getPath('userData'), 'instellingen.json');
 const EIGENMAP = path.join(app.getPath('userData'), 'animations');
 const STIJLEN = { top: ['geen', 'antenne', 'oren', 'hoorns', 'kuif'], vlek: ['geen', 'buik', 'strepen', 'stippen'] };
-const inst = { kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, stijl: { top: 'geen', vlek: 'geen', wangen: false }, schermen: 'alle' };
+const inst = { naam: 'Maatje', kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, stijl: { top: 'geen', vlek: 'geen', wangen: false }, schermen: 'alle' };
+const goedeNaam = n => typeof n === 'string' && n.length >= 1 && n.length <= 20 && /^[A-Za-z0-9 .'-]+$/.test(n);
 const goedeStijl = s => !!s && typeof s === 'object' && STIJLEN.top.includes(s.top) && STIJLEN.vlek.includes(s.vlek) && typeof s.wangen === 'boolean';
 let vinder = null, laatsteVensters = [], vinderFout = null;
 let win = null, paneel = null, tray = null, wereld = null, klaar = false, zichtbaar = true;
@@ -44,6 +45,7 @@ function leesInst() {
     if (typeof i.meeleven === 'boolean') inst.meeleven = i.meeleven;
     if (typeof i.skin === 'string' && /^[a-z0-9-]{0,48}$/.test(i.skin)) inst.skin = i.skin;
     if (i.schermen === 'primair') inst.schermen = 'primair';
+    if (goedeNaam(i.naam)) inst.naam = i.naam;
     if (typeof i.vensters === 'boolean') inst.vensters = i.vensters;
     if (goedeStijl(i.stijl)) inst.stijl = { top: i.stijl.top, vlek: i.stijl.vlek, wangen: i.stijl.wangen };
   } catch (e) { /* nog geen instellingen: de standaard is goed */ }
@@ -142,7 +144,7 @@ function zetZicht(aan, vanBinnen) {
 function openPaneel() {
   if (paneel && !paneel.isDestroyed()) { if (!PROEF) { if (paneel.isMinimized()) paneel.restore(); paneel.show(); paneel.focus(); } return paneel; }
   paneel = new BrowserWindow({
-    width: 1060, height: 720, minWidth: 780, minHeight: 520, show: false, title: 'Maatje', backgroundColor: '#1b1a18', icon: icoon(64), autoHideMenuBar: true,
+    width: 1060, height: 720, minWidth: 780, minHeight: 520, show: false, title: inst.naam, backgroundColor: '#1b1a18', icon: icoon(64), autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload-paneel.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
   });
   paneel.setMenu(null);
@@ -208,11 +210,13 @@ ipcMain.on('muis', (e, pakken) => { if (win) win.setIgnoreMouseEvents(!pakken, {
 ipcMain.on('zicht', (e, aan) => zetZicht(!!aan, true));
 ipcMain.on('bewaar', (e, i) => {
   for (const k of ['kleur', 'maat', 'hoed', 'geluid', 'vrij', 'meeleven', 'skin']) if (i && k in i) inst[k] = i[k];
+  if (i && goedeNaam(i.naam)) inst.naam = i.naam;
   if (i && typeof i.vensters === 'boolean') inst.vensters = i.vensters;
   if (i && goedeStijl(i.stijl)) inst.stijl = { top: i.stijl.top, vlek: i.stijl.vlek, wangen: i.stijl.wangen };
   schrijfInst();
   zetVensters();
-  if (tray) { tray.setImage(icoon(32)); werkMenuBij(); }
+  if (tray) { tray.setImage(icoon(32)); tray.setToolTip(inst.naam); werkMenuBij(); }
+  if (paneel && !paneel.isDestroyed()) paneel.setTitle(inst.naam);
   naarPaneel('stand');
 });
 function vraagVenster(b) {                           // een vraag aan het poppetje-venster, met het antwoord als belofte
@@ -321,7 +325,7 @@ function doe(regels) { if (win && klaar) win.webContents.send('vraag', 0, { wat:
 function werkMenuBij() {
   if (!tray) return;
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Open Maatje', click: () => openPaneel() },
+    { label: 'Open ' + inst.naam, click: () => openPaneel() },
     { type: 'separator' },
     { label: zichtbaar ? 'Hide' : 'Show', click: () => zetZicht(!zichtbaar) },
     { label: 'Wander around by himself', type: 'checkbox', checked: inst.vrij, click: m => doe(['vrij ' + (m.checked ? 'aan' : 'uit')]) },
@@ -337,7 +341,7 @@ function werkMenuBij() {
 }
 function maakTray() {
   tray = new Tray(icoon(32));
-  tray.setToolTip('Maatje');
+  tray.setToolTip(inst.naam);
   tray.on('click', () => { if (!zichtbaar) zetZicht(true); openPaneel(); });
   werkMenuBij();
 }
