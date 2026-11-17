@@ -49,6 +49,7 @@ function zoekElectron() {
     cp.execFileSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe'), ['-xf', zips.sort().pop(), '-C', doel], { stdio: 'ignore' });
     if (fs.existsSync(path.join(doel, 'electron.exe'))) return path.join(doel, 'electron.exe');
   }
+  if (fs.existsSync(path.join(HIER, 'node_modules', 'electron', 'install.js'))) throw new Error('Electron is wel opgehaald maar nog niet uitgepakt. Typ in deze map:  node node_modules/electron/install.js');
   throw new Error('Electron is er nog niet. Typ in deze map eerst:  npm install');
 }
 

@@ -40,6 +40,9 @@ node maatje.js start
 `npm install` haalt Electron op (het programma waar Maatje in draait, ongeveer 110 MB). Daarna kun je
 ook dubbelklikken op `maatje-start.cmd`. Maatje valt uit de lucht, rechts op je eerste scherm.
 
+Zegt Maatje bij het starten dat Electron nog niet is uitgepakt? Sommige versies van npm slaan dat stapje
+over. Typ dan `node node_modules/electron/install.js` en start opnieuw.
+
 | Wat | Hoe |
 |---|---|
 | Starten | `node maatje.js start` of dubbelklik `maatje-start.cmd` |
