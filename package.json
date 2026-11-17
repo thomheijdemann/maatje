@@ -1,6 +1,6 @@
 {
   "name": "maatje",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "A little pixel pet that walks across your desktop, with 500+ animations, and that Claude can control (unofficial fan project)",
   "private": true,
   "license": "MIT",
@@ -10,6 +10,7 @@
     "open": "node maatje.js open",
     "show": "node maatje.js show",
     "test": "node test/proef.js",
+    "test:window": "node test/window.js",
     "build": "node tools/build-exe.js"
   },
   "devDependencies": {

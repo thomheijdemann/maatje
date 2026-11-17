@@ -75,13 +75,7 @@ function meetWereld() {
 
 function maakVenster() {
   wereld = meetWereld();
-  win = new BrowserWindow({
-    x: wereld.x, y: wereld.y, width: wereld.w, height: wereld.h,
-    show: false, frame: false, transparent: true, backgroundColor: '#00000000',
-    resizable: false, movable: false, minimizable: false, maximizable: false, fullscreenable: false,
-    skipTaskbar: true, focusable: false, hasShadow: false, thickFrame: false, alwaysOnTop: !PROEF, title: 'Maatje',
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
-  });
+  win = new BrowserWindow(require('./overlay.js')(wereld, path.join(__dirname, 'preload.js'), PROEF));      // zie overlay.js: waarom het een "tool window" is
   win.setMenu(null);
   win.setIgnoreMouseEvents(true, { forward: true });          // klikken gaan erdoorheen
   if (!PROEF) win.setAlwaysOnTop(true, 'screen-saver');

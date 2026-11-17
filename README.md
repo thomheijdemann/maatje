@@ -246,8 +246,8 @@ anim victory-dance
 ## How it is put together
 
 - `app/main.js`: one transparent window over all your screens (always on top, never takes focus, clicks
-  go through it), the app window, the icon next to the clock, the folder with your own animations, and a
-  named pipe over which commands come in. No network port is opened.
+  go through it; its settings are in `app/overlay.js`), the app window, the icon next to the clock, the
+  folder with your own animations, and a named pipe over which commands come in. No network port is opened.
 - `app/js/figuur.js`: how the little guy is drawn and how he moves (14 by 10 pixels, all in code).
 - `app/js/acties.js`: all commands. A new command is one small block `opdracht('name', {...})`;
   the help, the language and the test pick it up by themselves.
@@ -267,8 +267,14 @@ a short explanation in English. Everything you see as a user is English.
 Test without a window: `npm test`. It starts the real program invisibly, moves time forward by hand and
 checks everything: every command, every animation, your own animations, the app window, the mouse,
 following along, and that nothing is left behind on the screen. To test the built program instead, set
-`MAATJE_EXE` to the path of `Maatje.exe` first. Make the clip at the top again with
-`node tools/make-gif.js` (needs ffmpeg).
+`MAATJE_EXE` to the path of `Maatje.exe` first.
+
+`npm run test:window` is a second, small test with real windows: for about ten seconds a tiny window
+appears in the top left corner with Maatje's see-through window over it. It checks that a program under
+Maatje keeps drawing while your mouse is on him. (In version 1.3.0 it did not: a YouTube video under
+Maatje froze when you clicked him. `app/overlay.js` explains why.)
+
+Make the clip at the top again with `node tools/make-gif.js` (needs ffmpeg).
 
 ## Good to know
 
