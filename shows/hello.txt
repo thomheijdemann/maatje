@@ -1,0 +1,13 @@
+# A small example to start from.
+# + in front = do not wait: he talks while he is already walking.
+
+walk middle
+wave
+say Hello!
++say I'm going to jump...
+walk +200
+repeat 3
+jump
+end
+emote heart
+bow

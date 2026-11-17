@@ -1,3 +1,3 @@
 @echo off
-rem Dubbelklik: Maatje verschijnt op je bureaublad.
+rem Double-click: Maatje appears on your desktop.
 node "%~dp0maatje.js" start

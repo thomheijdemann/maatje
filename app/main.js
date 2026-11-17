@@ -1,9 +1,10 @@
 'use strict';
-/* MAATJE - het hoofdprogramma (Electron).
-   - een doorzichtig venster over het hele bureaublad; klikken gaan er dwars doorheen
-   - een icoontje bij de klok (rechtsklik = menu)
-   - een pijp (named pipe) waarover Claude opdrachten stuurt: zie ../maatje.js
-   Starten voor een proef zonder venster: electron.exe app --proef  */
+/* MAATJE - the main program (Electron).
+   - one transparent window over the whole desktop; clicks go straight through it
+   - a little icon next to the clock (right-click = menu)
+   - a named pipe over which Claude sends commands: see ../maatje.js
+   Start it for a test without a window: electron.exe app --proef
+   The code below is written in Dutch; everything the user sees is English. */
 const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage } = require('electron');
 const net = require('net');
 const fs = require('fs');
@@ -82,8 +83,8 @@ function maakVenster() {
   win.webContents.on('did-finish-load', () => {
     klaar = false;
     win.setBounds({ x: wereld.x, y: wereld.y, width: wereld.w, height: wereld.h });
-    let gebruiker = 'jij';                           // voor {naam} in een tekst: de naam waarmee je op deze pc bent aangemeld
-    if (!PROEF) { try { gebruiker = String(require('os').userInfo().username || 'jij').slice(0, 24); } catch (e) { /* dan maar "jij" */ } }
+    let gebruiker = 'you';                           // voor {name} in een tekst: de naam waarmee je op deze pc bent aangemeld
+    if (!PROEF) { try { gebruiker = String(require('os').userInfo().username || 'you').slice(0, 24); } catch (e) { /* dan maar "you" */ } }
     win.webContents.send('begin', { wereld, inst, proef: PROEF, zaad: PROEF ? 12345 : 0, gebruiker });
   });
   win.webContents.on('render-process-gone', () => { klaar = false; setTimeout(() => { if (win) win.reload(); }, 500); });
@@ -124,18 +125,18 @@ ipcMain.on('bewaar', (e, i) => {
 function stuur(sock, u) { try { sock.write(JSON.stringify(u) + '\n'); } catch (e) { /* de vrager is al weg */ } }
 function behandel(regel, sock) {
   let b;
-  try { b = JSON.parse(regel); } catch (e) { return stuur(sock, { ok: false, fout: 'dat is geen geldige JSON' }); }
+  try { b = JSON.parse(regel); } catch (e) { return stuur(sock, { ok: false, fout: 'that is not valid JSON' }); }
   const terug = u => stuur(sock, Object.assign({ id: b.id }, u));
   if (b.wat === 'ping') return terug({ ok: true, klaar, proef: PROEF, pid: process.pid });
   if (b.wat === 'afsluiten') { terug({ ok: true }); setTimeout(() => app.quit(), 60); return; }
-  if (!win || !klaar) return terug({ ok: false, fout: 'Maatje is nog aan het opstarten' });
+  if (!win || !klaar) return terug({ ok: false, fout: 'Maatje is still starting up' });
   const nr = volgnr++;
   open.set(nr, u => {
-    u = u || { ok: false, fout: 'geen antwoord' };
+    u = u || { ok: false, fout: 'no answer' };
     if (b.wat === 'foto' && u.ok && u.png) {
       try {
         const pad = path.resolve(String(b.pad || ''));
-        if (!/\.png$/i.test(pad)) throw new Error('het pad moet op .png eindigen');
+        if (!/\.png$/i.test(pad)) throw new Error('the file name must end in .png');
         fs.mkdirSync(path.dirname(pad), { recursive: true });
         fs.writeFileSync(pad, Buffer.from(u.png.split(',')[1], 'base64'));
         u = { ok: true, pad, breed: u.breed, hoog: u.hoog };
@@ -185,15 +186,15 @@ function werkMenuBij() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Maatje', enabled: false },
     { type: 'separator' },
-    { label: zichtbaar ? 'Verbergen' : 'Laten zien', click: () => zetZicht(!zichtbaar) },
-    { label: 'Vanzelf rondlopen', type: 'checkbox', checked: inst.vrij, click: m => doe(['vrij ' + (m.checked ? 'aan' : 'uit')]) },
-    { label: 'Meeleven met Claude', type: 'checkbox', checked: inst.meeleven, click: m => doe(['meeleven ' + (m.checked ? 'aan' : 'uit')]) },
-    { label: 'Geluid', type: 'checkbox', checked: inst.geluid, click: m => doe(['geluid ' + (m.checked ? 'aan' : 'uit')]) },
+    { label: zichtbaar ? 'Hide' : 'Show', click: () => zetZicht(!zichtbaar) },
+    { label: 'Wander around by himself', type: 'checkbox', checked: inst.vrij, click: m => doe(['vrij ' + (m.checked ? 'aan' : 'uit')]) },
+    { label: 'Follow along with Claude', type: 'checkbox', checked: inst.meeleven, click: m => doe(['meeleven ' + (m.checked ? 'aan' : 'uit')]) },
+    { label: 'Sound', type: 'checkbox', checked: inst.geluid, click: m => doe(['geluid ' + (m.checked ? 'aan' : 'uit')]) },
     { type: 'separator' },
-    { label: 'Geef een show', click: () => { try { doe(fs.readFileSync(path.join(__dirname, '..', 'shows', 'show.txt'), 'utf8').split(/\r?\n/)); } catch (e) { /* geen show */ } } },
-    { label: 'Opruimen (vriendjes en bal weg)', click: () => doe(['stop', 'opruimen']) },
+    { label: 'Play the show', click: () => { try { doe(fs.readFileSync(path.join(__dirname, '..', 'shows', 'show.txt'), 'utf8').split(/\r?\n/)); } catch (e) { /* geen show */ } } },
+    { label: 'Clean up (friends and ball away)', click: () => doe(['stop', 'opruimen']) },
     { type: 'separator' },
-    { label: 'Afsluiten', click: () => app.quit() },
+    { label: 'Quit', click: () => app.quit() },
   ]));
 }
 function maakTray() {

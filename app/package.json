@@ -1,7 +1,7 @@
 {
   "name": "maatje",
   "productName": "Maatje",
-  "version": "1.0.0",
-  "description": "Een pixel-poppetje dat over je bureaublad loopt en dat Claude kan besturen",
+  "version": "1.2.0",
+  "description": "A little pixel pet that walks across your desktop and that Claude can control",
   "main": "main.js"
 }

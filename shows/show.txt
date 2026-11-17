@@ -1,51 +1,51 @@
-# De show van Maatje. Eén opdracht per regel. Alle opdrachten: maatje hulp
-# Zelf een show maken? Kopieer dit bestand, verander de regels en speel hem af met:  maatje speel <naam>
+# Maatje's show. One command per line. All commands: node maatje.js help
+# Want your own show? Copy this file, change the lines and play it with:  node maatje.js play <name>
 
 stop
-opruimen
-vrij uit
-maat gewoon
-hoed geen
-ogen normaal
-loop s1:50%
-zwaai
-zeg Hoi {naam}! Ik ben Maatje.
-zeg Claude kan mij besturen. Kijk maar!
-ren 20%
-ren 80%
-spring hoog
-salto
-emotie ster
-zeg Nu met vuurwerk!
-vuurwerk 8
-juich
-wacht 2.5
+cleanup
+roam off
+size normal
+hat none
+eyes normal
+walk s1:50%
+wave
+say Hi {name}! I'm Maatje.
+say Claude can control me. Watch this!
+run 20%
+run 80%
+jump high
+flip
+emote star
+say And now, fireworks!
+fireworks 8
+cheer
+wait 2.5
 
-hoed bril
-zeg Even stoer doen...
-zwaard
+hat glasses
+say Time to look cool...
+sword
 laser
-wacht 0.4
-hoed geen
+wait 0.4
+hat none
 
-kloon 4
-wacht 1
-zeg Mijn vriendjes doen alles na.
-dans 4
-juich
+clone 4
+wait 1
+say My friends copy everything I do.
+dance 4
+cheer
 
-vlieg 50% hoog
-titel MAATJE
-wacht 4
+fly 50% high
+title MAATJE
+wait 4
 land
-opruimen
+cleanup
 
-zeg En nu een rondje over het plafond!
-regenboog aan
-rondje
-regenboog uit
+say And now a lap across the ceiling!
+rainbow on
+lap
+rainbow off
 
-loop s1:50%
-zeg Pak me maar op met je muis. Tot zo!
-zwaai
-vrij aan
+walk s1:50%
+say Pick me up with your mouse. See you!
+wave
+roam on

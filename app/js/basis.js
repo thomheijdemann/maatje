@@ -1,10 +1,11 @@
 'use strict';
-/* MAATJE - basis: het doek, wissen wat getekend is, hulpjes en geluid.
-   Alles hangt aan één object M. Het venster is doorzichtig en ligt over het hele bureaublad;
-   elk beeld wissen we alleen de stukjes waar de vorige keer iets stond (M.merk / M.wis). */
+/* MAATJE - the basics: the canvas, erasing what was drawn, small helpers and sound.
+   Everything hangs on one object, M. The window is transparent and covers the whole desktop; every
+   frame we only erase the bits where something was drawn last time (M.merk / M.wis).
+   The code is written in Dutch (the names and the comments below); what the user sees is English. */
 const DONKER = '#141413';
 const M = window.M = {
-  versie: '1.1', gebruiker: 'jij',
+  versie: '1.2', gebruiker: 'you',
   W: 1920, H: 1040, dpr: 1,
   schermen: [{ x: 0, y: 0, w: 1920, h: 1040 }],
   t: 0, figuren: [], hoofd: null, fx: [], delen: [], bal: null,

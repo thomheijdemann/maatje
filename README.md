@@ -1,34 +1,34 @@
 # Maatje
 
-Een oranje pixel-poppetje dat over je bureaublad loopt, en dat Claude kan besturen.
+A little orange pixel pet that walks across your desktop, and that Claude can control.
 
-![Maatje loopt, praat, steekt vuurwerk af en typt op zijn laptopje](docs/maatje.gif)
+![Maatje runs, talks, sets off fireworks and types on his laptop](docs/maatje.gif)
 
-**English:** Maatje ("little buddy") is a pixel desktop pet for Windows. It walks on top of your taskbar,
-across all your screens, and an AI coding assistant such as Claude Code can control it with plain-text
-commands (walk, talk, fireworks, laser eyes and about 50 more). It can also follow along with Claude Code:
-it types on a tiny laptop while Claude works, waves when Claude needs you and cheers when Claude is done.
-Commands and documentation are in Dutch. This is an unofficial fan project, not affiliated with Anthropic.
+*Maatje* is Dutch for "little buddy". He stands on top of your taskbar, walks across all your screens,
+and does what Claude tells him: walk, talk, fly, set off fireworks. He can also follow along with
+Claude Code: he types on a tiny laptop while Claude is working and cheers when Claude is done.
 
-## Wat kan hij
+This is an unofficial fan project, made by a kid and Claude. It is not affiliated with Anthropic.
 
-- **Over je bureaublad lopen.** Hij staat boven op de taakbalk en loopt over al je schermen.
-  Je klikt gewoon door hem heen, behalve als je de muis óp hem zet.
-- **Doen wat Claude zegt.** Zo'n 50 opdrachten in gewone woorden: lopen, rennen, springen, salto, vliegen,
-  tegen de muur klimmen, een rondje over het plafond, praten, vuurwerk, laser uit zijn ogen, bliksem,
-  zwaardslag, sneeuw, voetballen, hoeden, kleuren, en vriendjes die hem nadoen.
-- **Meeleven met Claude Code.** Hij typt zolang Claude bezig is, zwaait als Claude je iets vraagt,
-  en roept "Klaar!" als Claude klaar is.
-- **Met jou spelen.** Klik hem aan voor een hartje, pak hem op en gooi hem weg, of aai hem met de muis.
-- **Vanzelf wat rondscharrelen** als niemand hem iets vraagt. Blijf je lang weg, dan valt hij in slaap.
+## What he can do
 
-## Wat heb je nodig
+- **Walk across your desktop.** He stands on the taskbar and walks over every screen.
+  You simply click through him, unless you put the mouse *on* him.
+- **Do what Claude says.** About 50 commands in plain words: walk, run, jump, flip, fly, climb the side
+  of the screen, run a lap across the ceiling, talk, fireworks, laser eyes, lightning, a sword strike,
+  snow, soccer, hats, colors, and friends who copy him.
+- **Follow along with Claude Code.** He types while Claude is busy, waves when Claude asks you
+  something, and shouts "Done!" when Claude has finished.
+- **Play with you.** Click him for a heart, pick him up and throw him, or pet him with the mouse.
+- **Potter about by himself** when nobody asks him anything. Stay away long enough and he falls asleep.
 
-- Windows 10 of 11 (op een Mac of op Linux werkt hij niet)
-- [Node.js](https://nodejs.org) 18 of nieuwer
-- Voor het meeleven: [Claude Code](https://claude.com/claude-code)
+## What you need
 
-## Installeren
+- Windows 10 or 11 (he does not work on a Mac or on Linux)
+- [Node.js](https://nodejs.org) 18 or newer
+- For following along: [Claude Code](https://claude.com/claude-code)
+
+## Install
 
 ```
 git clone https://github.com/thomheijdemann/maatje.git
@@ -37,137 +37,145 @@ npm install
 node maatje.js start
 ```
 
-`npm install` haalt Electron op (het programma waar Maatje in draait, ongeveer 110 MB). Daarna kun je
-ook dubbelklikken op `maatje-start.cmd`. Maatje valt uit de lucht, rechts op je eerste scherm.
+`npm install` fetches Electron (the program Maatje runs in, about 110 MB). After that you can also
+double-click `maatje-start.cmd`. Maatje drops out of the sky, on the right of your main screen.
 
-Zegt Maatje bij het starten dat Electron nog niet is uitgepakt? Sommige versies van npm slaan dat stapje
-over. Typ dan `node node_modules/electron/install.js` en start opnieuw.
+Does Maatje say that Electron has not been unpacked yet? Some versions of npm skip that step.
+Type `node node_modules/electron/install.js` and start again.
 
-| Wat | Hoe |
+| What | How |
 |---|---|
-| Starten | `node maatje.js start` of dubbelklik `maatje-start.cmd` |
-| Afsluiten | `node maatje.js sluit`, `maatje-stop.cmd`, of rechtsklik op het icoontje bij de klok |
-| Even weg (bij een spel of een opname) | rechtsklik op het icoontje bij de klok en kies Verbergen |
-| De show | `node maatje.js show` of dubbelklik `maatje-show.cmd` |
+| Start | `node maatje.js start` or double-click `maatje-start.cmd` |
+| Quit | `node maatje.js quit`, `maatje-stop.cmd`, or right-click the icon next to the clock |
+| Hide for a while (a game, a recording) | right-click the icon next to the clock and choose Hide |
+| The show | `node maatje.js show` or double-click `maatje-show.cmd` |
 
-Hij start niet vanzelf als je de pc aanzet. Het icoontje bij de klok kan onder het pijltje `^` zitten.
+He does not start by himself when you turn on your pc. The icon next to the clock may be tucked away
+under the little `^` arrow.
 
-## Opdrachten geven
+## Giving commands
 
 ```
-node maatje.js zeg Hoi!
-node maatje.js "loop midden; spring hoog; juich"
-node maatje.js hulp
+node maatje.js say Hi!
+node maatje.js "walk middle; jump high; cheer"
+node maatje.js help
 ```
 
-`node maatje.js hulp` laat alle opdrachten zien, met bij elke opdracht een voorbeeld. In deze map kun je
-ook kort `maatje zeg Hoi!` typen.
+`node maatje.js help` lists every command with an example. Inside this folder you can also type the
+short form: `maatje say Hi!`
 
-| Soort | Opdrachten |
+| Kind | Commands |
 |---|---|
-| Bewegen | `loop`, `ren`, `sluip`, `spring`, `salto`, `draai`, `teleport`, `vlieg`, `land`, `klim`, `rondje` |
-| Praten | `zeg`, `denk`, `roep`, `fluister`, `stil` |
-| Gevoel | `emotie`, `ogen`, `kijk`, `zwaai`, `juich`, `knik`, `schud`, `buig`, `schrik`, `dans`, `zit`, `sta`, `slaap`, `wakker`, `typ` |
-| Effecten | `vuurwerk`, `laser`, `bliksem`, `regenboog`, `sneeuw`, `titel`, `zwaard`, `bal`, `trap`, `voetbal` |
-| Uiterlijk | `kleur`, `maat`, `hoed` |
-| Vriendjes | `kloon`, `opruimen` |
-| Overig | `wacht`, `stop`, `vrij`, `geluid`, `meeleven`, `weg`, `kom` |
+| Movement | `walk`, `run`, `sneak`, `jump`, `flip`, `spin`, `teleport`, `fly`, `land`, `climb`, `lap` |
+| Talking | `say`, `think`, `shout`, `whisper`, `quiet` |
+| Feelings | `emote`, `eyes`, `look`, `wave`, `cheer`, `nod`, `shake`, `bow`, `startle`, `dance`, `sit`, `stand`, `sleep`, `wake`, `type` |
+| Effects | `fireworks`, `laser`, `lightning`, `rainbow`, `snow`, `title`, `sword`, `ball`, `kick`, `soccer` |
+| Looks | `color`, `size`, `hat` |
+| Friends | `clone`, `cleanup` |
+| Claude | `work`, `follow` |
+| Other | `wait`, `stop`, `roam`, `sound`, `hide`, `come` |
 
-Een plek kan zijn: `links`, `midden`, `rechts`, `ergens`, `muis`, `50%`, `s2:50%` (tweede scherm),
-`+200` of `-200` (pixels verder) of een pixel.
+A place can be: `left`, `middle`, `right`, `anywhere`, `mouse`, `50%`, `s2:50%` (second screen),
+`+200` or `-200` (pixels further) or a pixel.
 
-## Claude hem laten besturen
+Maatje was born in the Netherlands, so the Dutch words work as well: `loop midden` is the same as
+`walk middle`, and `zeg Hoi!` is the same as `say Hi!`. The help shows them in brackets.
 
-Zeg tegen Claude Code waar Maatje staat, bijvoorbeeld in je `CLAUDE.md`:
+## Letting Claude control him
 
-```
-Op deze pc loopt Maatje, een poppetje op het bureaublad dat jij kunt besturen.
-Alle opdrachten: node C:/pad/naar/maatje/maatje.js hulp
-Voorbeeld:       node C:/pad/naar/maatje/maatje.js "loop midden; roep Klaar!; juich"
-```
-
-Handig voor Claude:
-
-- `--wacht` achter een opdracht: pas terugkomen als Maatje klaar is.
-- `node maatje.js status`: waar hij is en wat hij doet.
-- `node maatje.js foto plaatje.png --rond`: een plaatje van wat Maatje op dit moment tekent
-  (alleen Maatje zelf, niet je scherm).
-- Elke opdracht start Maatje vanzelf als hij nog niet loopt.
-
-## Meeleven met Claude Code
+Tell Claude Code where Maatje lives, for example in your `CLAUDE.md`:
 
 ```
-node maatje.js koppel
+Maatje, a little pet on the desktop, is running on this pc, and you can control him.
+All commands: node C:/path/to/maatje/maatje.js help
+Example:      node C:/path/to/maatje/maatje.js "walk middle; shout Done!; cheer"
 ```
 
-Dat zet een paar regels ("hooks") in `~/.claude/settings.json`. Wat daar al stond blijft staan, en er
-wordt eerst een reservekopie gemaakt. Vanaf dan:
+Handy for Claude:
 
-| Wat Claude doet | Wat Maatje doet |
+- `--wait` after a command: only come back when Maatje has finished.
+- `node maatje.js status`: where he is and what he is doing.
+- `node maatje.js photo picture.png --around`: a picture of what Maatje is drawing right now
+  (only Maatje himself, never your screen).
+- Every command starts Maatje by itself if he is not running yet.
+
+## Following along with Claude Code
+
+```
+node maatje.js connect
+```
+
+This adds a few lines ("hooks") to `~/.claude/settings.json`. Whatever was already there stays, and a
+backup is made first. From then on:
+
+| What Claude does | What Maatje does |
 |---|---|
-| Claude is bezig | hij zit op zijn laptopje te typen, met af en toe een denkpauze |
-| Claude zet een hulpje in (een subagent) | er komt een vriendje bij dat meetypt |
-| Claude vraagt je iets of wil toestemming | hij stopt, zwaait en zegt "Kom je even kijken?" |
-| Claude is klaar met zijn beurt | hij juicht en roept "Klaar!" |
+| Claude is busy | he sits typing on his little laptop, with a thinking break now and then |
+| Claude starts a helper (a subagent) | a friend joins him and types along |
+| Claude asks you something or wants permission | he stops, waves and says "Can you take a look?" |
+| Claude has finished his turn | he cheers and shouts "Done!" |
 
-- Het scriptje `haak.js` vertelt Maatje alleen wát er gebeurt (werkt, klaar, heeft je nodig) en bij
-  welke sessie. Het geeft niet door wat je typt of wat Claude doet.
-- Loopt Maatje niet, dan gebeurt er niets.
-- Even uit: rechtsklik op het icoontje bij de klok en haal het vinkje bij "Meeleven met Claude" weg.
-- Helemaal weg: `node maatje.js ontkoppel`. Doe dat ook voordat je deze map verplaatst of weggooit,
-  anders meldt Claude Code bij elke stap dat hij het script niet kan vinden.
+- The little script `hook.js` only tells Maatje *what* is happening (working, done, needs you) and for
+  which session. It does not pass on what you type or what Claude is doing.
+- If Maatje is not running, nothing happens.
+- Off for a while: right-click the icon next to the clock and untick "Follow along with Claude".
+- Gone completely: `node maatje.js disconnect`. Do that before you move or delete this folder too,
+  otherwise Claude Code reports at every step that it cannot find the script.
 
-## Je eigen show maken
+## Making your own show
 
-Een show is een tekstbestand in de map `shows`, met één opdracht per regel. Kijk naar `shows/hallo.txt`
-voor een klein voorbeeld. Afspelen: `node maatje.js speel hallo`.
+A show is a text file in the `shows` folder, with one command per line. Look at `shows/hello.txt` for a
+small example. Play it with `node maatje.js play hello`.
 
 ```
-# een regel met # is uitleg
-loop midden
-zwaai
-zeg Hoi {naam}!
-+zeg Ik praat terwijl ik loop
-loop +200
-herhaal 3
-spring
-einde
+# a line with # is an explanation
+walk middle
+wave
+say Hi {name}!
++say I talk while I walk
+walk +200
+repeat 3
+jump
+end
 ```
 
-- `+` voor een opdracht: niet wachten tot hij klaar is.
-- `herhaal 3` ... `einde`: dat stuk drie keer.
-- `{naam}` wordt de naam waarmee je op je pc bent aangemeld.
-- Staat er een tikfout in, dan zegt hij welke regel het is en doet hij niets.
+- `+` in front of a command: do not wait until it is done.
+- `repeat 3` ... `end`: that part three times.
+- `{name}` becomes the name you are signed in with on your pc.
+- If there is a typo in it, he tells you which line it is and does nothing.
 
-## Hoe het in elkaar zit
+## How it is put together
 
-- `app/main.js`: één doorzichtig venster over alle schermen (altijd bovenop, pakt geen focus, klikken
-  gaan erdoorheen), het icoontje bij de klok, en een "named pipe" waarover opdrachten binnenkomen.
-  Er staat geen netwerkpoort open.
-- `app/js/figuur.js`: hoe het poppetje getekend wordt en beweegt (14 bij 10 pixels, helemaal in code).
-- `app/js/acties.js`: alle opdrachten. Een nieuwe opdracht is één blokje `opdracht('naam', {...})`;
-  de hulp, de taal en de proef nemen hem dan vanzelf mee.
-- `app/js/fx.js`: vuurwerk, laser, bliksem, sneeuw, de bal. `app/js/letters.js`: eigen pixelletters.
-- `app/js/brein.js`: wat hij vanzelf doet, de muis, en het meeleven.
-- `maatje.js`: de bediening. `haak.js`: het scriptje dat Claude Code aanroept.
-- Geluid is in code gemaakt (zachte piepjes). Uitzetten: `node maatje.js geluid uit`.
+- `app/main.js`: one transparent window over all your screens (always on top, never takes focus, clicks
+  go through it), the icon next to the clock, and a named pipe over which commands come in.
+  No network port is opened.
+- `app/js/figuur.js`: how the little guy is drawn and how he moves (14 by 10 pixels, all in code).
+- `app/js/acties.js`: all commands. A new command is one small block `opdracht('name', {...})`;
+  the help, the language and the test pick it up by themselves.
+- `app/js/fx.js`: fireworks, laser, lightning, snow, the ball. `app/js/letters.js`: his own pixel letters.
+- `app/js/brein.js`: what he does by himself, the mouse, and following along.
+- `maatje.js`: the remote control. `hook.js`: the script Claude Code calls.
+- The sound is made in code (soft beeps). Turn it off with `node maatje.js sound off`.
 
-Testen zonder venster: `npm test`. Dat start het echte programma onzichtbaar, zet de tijd met de hand
-vooruit en loopt alles na: elke opdracht, de muis, het meeleven, en of er niets op het scherm blijft
-staan. Het filmpje hierboven maak je opnieuw met `node tools/maak-film.js` (ffmpeg nodig).
+The code itself is written in Dutch: the names of the functions and the comments. Each file starts with
+a short explanation in English. Everything you see as a user is English.
 
-## Goed om te weten
+Test without a window: `npm test`. It starts the real program invisibly, moves time forward by hand and
+checks everything: every command, the mouse, following along, and that nothing is left behind on the
+screen. Make the clip at the top again with `node tools/make-gif.js` (needs ffmpeg).
 
-- Gemaakt en getest op één pc: Windows 10, twee schermen van 1920 bij 1080.
-- Schermen met een andere vergroting dan je hoofdscherm doen niet mee.
-- Bij een spel op volledig scherm kun je hem beter verbergen (icoontje bij de klok).
-- Het geluid is gemaakt door een AI die niet kan horen. Is het lelijk, zet het dan uit.
+## Good to know
 
-## Onofficieel
+- Made and tested on one pc: Windows 10, two screens of 1920 by 1080.
+- Screens with a different scaling than your main screen do not take part.
+- With a full-screen game it is better to hide him (the icon next to the clock).
+- The sound was made by an AI that cannot hear. If it sounds ugly, turn it off.
 
-Maatje is een fanproject. Het poppetje is nagetekend naar het mannetje van Claude Code, en dat mannetje
-is van [Anthropic](https://www.anthropic.com). Dit project hoort niet bij Anthropic en is niet door
-Anthropic gemaakt of goedgekeurd. "Claude" is een merk van Anthropic.
+## Unofficial
 
-De code heeft de MIT-licentie (zie `LICENSE` en `NOTICE.md`): je mag hem gebruiken, veranderen en doorgeven.
-Bijna alle code is geschreven door Claude, op verzoek van de maker.
+Maatje is a fan project. The little guy is drawn after the Claude Code mascot, and that mascot belongs
+to [Anthropic](https://www.anthropic.com). This project is not part of Anthropic and was not made or
+approved by Anthropic. "Claude" is a trademark of Anthropic.
+
+The code has the MIT license (see `LICENSE` and `NOTICE.md`): you may use it, change it and pass it on.
+Almost all of the code was written by Claude, at the request of the maker.

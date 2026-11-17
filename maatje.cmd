@@ -1,3 +1,3 @@
 @echo off
-rem Zo typ je opdrachten:  maatje zeg Hoi!   of   maatje "loop midden; spring"   of   maatje hulp
+rem Type commands like this:  maatje say Hi!   or   maatje "walk middle; jump"   or   maatje help
 node "%~dp0maatje.js" %*

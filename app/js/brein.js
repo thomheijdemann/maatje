@@ -1,5 +1,6 @@
 'use strict';
-/* MAATJE - wat hij uit zichzelf doet als hij geen opdracht heeft, en wat de muis met hem doet. */
+/* MAATJE - the "brain": what he does by himself when he has no command, what the mouse does to him,
+   and following along with Claude Code (typing while Claude works). The code below is in Dutch. */
 
 /* ---- de muis: het venster laat klikken door, behalve als de muis op het poppetje staat ---- */
 M.muisToets = function (alleenLos) {
@@ -78,18 +79,18 @@ M.meeleef = function (b) {
       break;
     case 'nodig':
       if (s) { s.t = M.t; s.nodig = true; }
-      if (M.t >= W.nodigKoel) { W.nodigKoel = M.t + 15; reageer(['kijk muis', '+zeg Kom je even kijken?', 'zwaai', 'emotie uitroep'], 3.5); }
+      if (M.t >= W.nodigKoel) { W.nodigKoel = M.t + 15; reageer(['kijk muis', '+zeg Can you take a look?', 'zwaai', 'emotie uitroep'], 3.5); }
       break;
     case 'klaar':
       delete W.sessies[id];
       W.vertrekNa = M.t + 2.4;
-      if (M.t >= W.klaarKoel) { W.klaarKoel = M.t + 4; reageer(['+roep Klaar!', 'juich', 'emotie ster'], 3); }
+      if (M.t >= W.klaarKoel) { W.klaarKoel = M.t + 4; reageer(['+roep Done!', 'juich', 'emotie ster'], 3); }
       break;
     case 'einde':
       delete W.sessies[id];
       break;
     default:
-      return { ok: false, fout: 'onbekende gebeurtenis: ' + b.gebeurtenis };
+      return { ok: false, fout: 'unknown event: ' + b.gebeurtenis };
   }
   return { ok: true, meeleven: true, werkt: M.werkActief() };
 };

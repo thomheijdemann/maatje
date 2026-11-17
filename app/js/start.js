@@ -1,5 +1,6 @@
 'use strict';
-/* MAATJE - de hoofdlus en de aansluiting met het hoofdprogramma (opdrachten erin, antwoorden eruit). */
+/* MAATJE - the main loop and the connection with the main program (requests in, answers out).
+   The code below is in Dutch. */
 (function () {
   const app = window.maatjeApp;
   let vorige = 0, teller = 0, fpsT = 0, fpsN = 0;
@@ -66,6 +67,7 @@
       hoofd: {
         x: Math.round(f.x), y: Math.round(f.y), waar: VLAKNAAM[f.vlak], lucht: f.lucht, vliegt: f.vliegt, gepakt: f.gepakt, houding: f.houding,
         kleur: f.kleur, maat: f.maat, hoed: f.hoed, doet: f.nu ? f.nuNaam : null, wachtrij: f.rij.length,
+        hoedEn: M.engels.hoed(f.hoed), doetEn: f.nu ? M.engels.opdracht(f.nuNaam) : null,
         zegt: f.bel ? f.bel.regels.join(' ') : null, bel: f.bel ? f.bel.rect : null, rol: +f.rol.toFixed(2), zichtbaar: f.zichtbaar,
         emotie: f.emote ? f.emote.naam : null, ogen: f.oogSoort(), kijk: f.kijk,
       },
@@ -102,7 +104,7 @@
       case 'zicht': M.zetZicht(!!b.aan, false); return { ok: true };
       case 'meeleven': return M.meeleef(b);
     }
-    if (!M.proef) return { ok: false, fout: 'dat ken ik niet: ' + b.wat };
+    if (!M.proef) return { ok: false, fout: 'unknown request: ' + b.wat };
     switch (b.wat) {                                  // alleen in een proef: de tijd met de hand vooruitzetten, de muis nadoen
       case 'stap': {
         const dt = b.dt || 1 / 60, n = Math.round((b.sec || dt) / dt);
@@ -129,7 +131,7 @@
         return { ok: true };
       }
     }
-    return { ok: false, fout: 'dat ken ik niet: ' + b.wat };
+    return { ok: false, fout: 'unknown request: ' + b.wat };
   };
 
   if (!app) return;
@@ -144,7 +146,7 @@
   });
   app.opBegin(d => {
     M.proef = !!d.proef;
-    M.gebruiker = d.gebruiker || 'jij';
+    M.gebruiker = d.gebruiker || 'you';
     Object.assign(M.inst, d.inst);
     M.zetWereld(d.wereld);
     if (d.zaad) M.zaai(d.zaad);

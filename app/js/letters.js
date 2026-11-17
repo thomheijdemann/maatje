@@ -1,7 +1,7 @@
 'use strict';
-/* MAATJE - pixelletters en tekstballonnen.
-   Elke letter is 5 breed; rij 0-6 is de letter zelf, rij 7-8 de staartjes (g j p q y),
-   accenten komen erboven. '#' = pixel, '/' = volgende rij. */
+/* MAATJE - pixel letters and speech bubbles.
+   Every letter is 5 wide; rows 0-6 are the letter itself, rows 7-8 the tails (g j p q y), accents go
+   above it. '#' = a pixel, '/' = next row. The code below is written in Dutch. */
 const LETTERBRON = {
   ' ': '',
   'A': '.###./#...#/#...#/#####/#...#/#...#/#...#', 'B': '####./#...#/#...#/####./#...#/#...#/####.',

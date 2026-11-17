@@ -1,3 +1,3 @@
 @echo off
-rem Dubbelklik: Maatje sluit af. (Kan ook met het icoontje bij de klok: rechtsklik, Afsluiten.)
-node "%~dp0maatje.js" sluit
+rem Double-click: Maatje shuts down. (Also possible with the icon next to the clock: right-click, Quit.)
+node "%~dp0maatje.js" quit

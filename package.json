@@ -1,12 +1,12 @@
 {
   "name": "maatje",
-  "version": "1.1.0",
-  "description": "Een pixel-poppetje dat over je bureaublad loopt en dat Claude kan besturen (onofficieel fanproject)",
+  "version": "1.2.0",
+  "description": "A little pixel pet that walks across your desktop and that Claude can control (unofficial fan project)",
   "private": true,
   "license": "MIT",
   "scripts": {
     "start": "node maatje.js start",
-    "stop": "node maatje.js sluit",
+    "stop": "node maatje.js quit",
     "show": "node maatje.js show",
     "test": "node test/proef.js"
   },

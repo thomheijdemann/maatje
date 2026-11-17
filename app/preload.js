@@ -1,5 +1,5 @@
 'use strict';
-/* MAATJE - het doorgeefluik tussen het venster en het hoofdprogramma. */
+/* MAATJE - the hatch between the window and the main program. */
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('maatjeApp', {
   opBegin: f => ipcRenderer.on('begin', (e, d) => f(d)),

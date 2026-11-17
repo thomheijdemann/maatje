@@ -1,7 +1,8 @@
 'use strict';
-/* MAATJE - het poppetje: hoe hij eruitziet, zijn houdingen en zijn natuurkunde.
-   Hij is 14 pixels breed en 10 hoog; f.maat = hoeveel schermpixels één pixel van hem is.
-   (x, y) is de plek van zijn voeten. Hij kan ook op de muren en het plafond lopen (f.vlak). */
+/* MAATJE - the little guy himself: what he looks like, his poses and his physics.
+   He is 14 pixels wide and 10 high; f.maat = how many screen pixels one of his pixels is.
+   (x, y) is where his feet are. He can also walk on the walls and the ceiling (f.vlak).
+   The code below is written in Dutch. */
 const ZW = 2400;                                                    // zwaartekracht, pixels per s²
 const VLAKHOEK = [0, -Math.PI / 2, -Math.PI, -Math.PI * 1.5];       // vloer, rechtermuur, plafond, linkermuur
 const VLAKNAAM = ['vloer', 'rechtermuur', 'plafond', 'linkermuur'];

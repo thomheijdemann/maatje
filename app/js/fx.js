@@ -1,6 +1,7 @@
 'use strict';
-/* MAATJE - effecten: deeltjes, vuurwerk, laser, bliksem, grote titel, zwaardslag, sneeuw en de bal.
-   Een effect is een ding in M.fx met stap(dt) (geeft true als het klaar is) en teken(). */
+/* MAATJE - effects: particles, fireworks, laser, lightning, the big title, the sword strike, snow and
+   the ball. An effect is a thing in M.fx with stap(dt) (returns true when it is done) and teken().
+   The code below is written in Dutch. */
 const PALETTEN = [['#ff5d5d', '#ffd166'], ['#5dd6ff', '#ffffff'], ['#b98cff', '#ff8ad8'], ['#7cfc9a', '#ffe066'], ['#d97757', '#ffd9c7'], ['#ffe066', '#ff8c2b']];
 
 /* ---- deeltjes: losse vierkantjes die vliegen, vallen en vervagen ---- */

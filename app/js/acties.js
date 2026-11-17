@@ -1,13 +1,37 @@
 'use strict';
-/* MAATJE - alle opdrachten.
-   Een opdracht is één regel tekst: een woord en wat erachter hoort, bijvoorbeeld "loop midden".
-   Nieuwe opdracht = één keer opdracht(naam, {...}) erbij; hulp, proef en de taal volgen vanzelf.
-     lees(rest)  -> maakt van de tekst achter het woord de gegevens (of geeft een fout)
-     maak(f, a)  -> geeft een actie terug: een ding met stap(dt) dat true geeft als het klaar is
-     grond/lijf  -> hij moet eerst op de vloer staan / opstaan;  stil -> doet niets met zijn lijf
-     groep       -> de vriendjes doen het na                                                       */
+/* MAATJE - all commands.
+   A command is one line of text: a word and whatever belongs after it, for example "walk middle".
+   The code is written in Dutch, so inside the code every command has a Dutch name; "en" is the English
+   word people type. Both work, and so do Dutch and English words after it (left / links, on / aan).
+   A new command = one more opdracht(dutchName, {...}); the help, the language and the test follow.
+     en          -> the English word              ook  -> extra words that mean the same
+     lees(rest)  -> turns the text after the word into data (or throws an error)
+     maak(f, a)  -> returns an action: a thing with stap(dt) that returns true when it is done
+     grond/lijf  -> he first has to stand on the floor / get up;   stil -> does nothing with his body
+     groep       -> his friends copy it                                                             */
 const OPDR = {}, ALIAS = {};
-function opdracht(naam, def) { def.naam = naam; OPDR[naam] = def; for (const a of def.ook || []) ALIAS[a] = naam; }
+function opdracht(naam, def) {
+  def.naam = naam; def.en = def.en || naam; OPDR[naam] = def;
+  if (def.en !== naam) ALIAS[def.en] = naam;
+  for (const a of def.ook || []) ALIAS[a] = naam;
+}
+
+/* Engelse woorden achter een opdracht -> het Nederlandse woord dat de code gebruikt */
+const EN = {
+  plek: { left: 'links', right: 'rechts', middle: 'midden', center: 'midden', anywhere: 'ergens', mouse: 'muis' },
+  hoogte: { high: 'hoog', middle: 'midden', low: 'laag' },
+  kant: { left: 'links', right: 'rechts' },
+  aanuit: { on: 'aan', off: 'uit' },
+  emo: { heart: 'hart', question: 'vraag', exclaim: 'uitroep', star: 'ster', music: 'muziek', angry: 'boos', sweat: 'zweet', idea: 'idee' },
+  ogen: { normal: 'normaal', big: 'groot', closed: 'dicht', sleepy: 'slaap', happy: 'blij', angry: 'boos', sad: 'sip', cross: 'kruis', heart: 'hart', star: 'ster', wink: 'knipoog', dizzy: 'duizelig' },
+  kijk: { left: 'links', right: 'rechts', up: 'omhoog', down: 'omlaag', ahead: 'voor', mouse: 'muis' },
+  kleur: { orange: 'oranje', red: 'rood', blue: 'blauw', green: 'groen', yellow: 'geel', purple: 'paars', pink: 'roze', white: 'wit', black: 'zwart', gray: 'grijs', grey: 'grijs', teal: 'turkoois', gold: 'goud', brown: 'bruin', rainbow: 'regenboog' },
+  maat: { small: 'klein', normal: 'gewoon', big: 'groot', giant: 'reus' },
+  hoed: { none: 'geen', crown: 'kroon', glasses: 'bril', cap: 'pet', tophat: 'hoed', headphones: 'koptelefoon', wizard: 'tovenaar' },
+};
+const nl = (soort, t) => EN[soort][t] || t;                          // Engels woord -> Nederlands woord (of zichzelf)
+function enWoord(soort, n) { for (const e in EN[soort]) if (EN[soort][e] === n) return e; return n; }
+const en = (soort, lijst) => lijst.map(n => enWoord(soort, n));      // voor de hulp: de Engelse woorden
 
 /* ---- bouwstenen voor acties ---- */
 function wacht(sec) { let t = 0; return { stap(dt) { t += dt; return t >= sec; } }; }
@@ -33,33 +57,34 @@ function reeks(lijst) {                              // dingen na elkaar; een fu
 function naarGrond(f) { let begonnen = false; return { stap() { if (!begonnen) { begonnen = true; f.laatLos(); } return !f.lucht; } }; }
 
 /* ---- lezen wat er achter een opdracht staat ---- */
-const geen = rest => { if (rest) throw new Error('hier hoort niets achter'); return {}; };
-const tekstArg = rest => { if (!rest) throw new Error('er mist tekst, bijvoorbeeld: zeg Hallo!'); return { tekst: rest.slice(0, 400) }; };
+const geen = rest => { if (rest) throw new Error('nothing should follow this command'); return {}; };
+const tekstArg = rest => { if (!rest) throw new Error('some text is missing, for example: say Hello!'); return { tekst: rest.slice(0, 400) }; };
 function getal(wat, min, max, std) {
   return rest => {
-    if (!rest) { if (std === undefined) throw new Error('er mist een getal (' + wat + ')'); return { n: std }; }
+    if (!rest) { if (std === undefined) throw new Error('a number is missing (' + wat + ')'); return { n: std }; }
     const n = parseFloat(rest.replace(',', '.'));
-    if (!/^\d+([.,]\d+)?$/.test(rest) || n < min || n > max) throw new Error(wat + ' moet een getal van ' + min + ' tot ' + max + ' zijn');
+    if (!/^\d+([.,]\d+)?$/.test(rest) || n < min || n > max) throw new Error(wat + ' must be a number from ' + min + ' to ' + max);
     return { n };
   };
 }
-function keuze(lijst, std) {
+function keuze(soort, lijst, std) {
   return rest => {
-    const k = rest.toLowerCase();
+    const k = nl(soort, rest.toLowerCase());
     if (!k && std) return { k: std };
-    if (!lijst.includes(k)) throw new Error('kies uit: ' + lijst.join(', '));
+    if (!lijst.includes(k)) throw new Error('choose one of: ' + en(soort, lijst).join(', '));
     return { k };
   };
 }
-const aanUit = rest => { const k = rest.toLowerCase(); if (k !== 'aan' && k !== 'uit') throw new Error('zet er aan of uit achter'); return { aan: k === 'aan' }; };
+const aanUit = rest => { const k = nl('aanuit', rest.toLowerCase()); if (k !== 'aan' && k !== 'uit') throw new Error('add on or off'); return { aan: k === 'aan' }; };
 
-const PLEK = /^(?:s(?:cherm)?([1-9]):?)?(links|rechts|midden|muis|ergens|[+-]\d+(?:\.\d+)?|\d+(?:\.\d+)?%?)?$/;
+const PLEK = /^(?:s(?:cherm|creen)?([1-9]):?)?(links|rechts|midden|muis|ergens|[+-]\d+(?:\.\d+)?|\d+(?:\.\d+)?%?)?$/;
 const PLEKY = /^(hoog|midden|laag|\d+(?:\.\d+)?%?)$/;
-const PLEKHULP = 'links, midden, rechts, ergens, muis, 50%, s2:50% (tweede scherm), +200 of -200 (pixels verder) of een pixel';
-const plek = rest => { const t = rest.toLowerCase(); if (!t || !PLEK.test(t)) throw new Error('waarheen? kies uit: ' + PLEKHULP); return { x: t }; };
+const PLEKHULP = 'left, middle, right, anywhere, mouse, 50%, s2:50% (second screen), +200 or -200 (pixels further) or a pixel';
+const plekNL = t => String(t).toLowerCase().replace(/(left|right|middle|center|anywhere|mouse)$/, w => EN.plek[w]);
+const plek = rest => { const t = plekNL(rest); if (!t || !PLEK.test(t)) throw new Error('where to? choose one of: ' + PLEKHULP); return { x: t }; };
 function plekX(tok, f, vrij) {
   const m = PLEK.exec(String(tok).toLowerCase());
-  if (!m) throw new Error('die plek snap ik niet: ' + tok);
+  if (!m) throw new Error('I do not understand that place: ' + tok);
   let sch = M.schermVan(f.midden().x);
   if (m[1]) sch = M.schermen[Math.min(M.schermen.length, +m[1]) - 1];
   const t = m[2] || 'midden', mar = vrij ? 0 : f.marge();
@@ -308,66 +333,90 @@ M.nieuweKloon = function () {
 };
 
 /* ================= de opdrachten ================= */
-opdracht('loop', { soort: 'bewegen', hulp: 'loopt naar een plek: ' + PLEKHULP, vb: 'loop midden', lees: plek, grond: true, lijf: true, maak: (f, a) => loopNaar(f, plekX(a.x, f), 120) });
-opdracht('ren', { soort: 'bewegen', hulp: 'rent naar een plek (zelfde plekken als loop)', vb: 'ren links', lees: plek, grond: true, lijf: true, maak: (f, a) => loopNaar(f, plekX(a.x, f), 400) });
-opdracht('sluip', { soort: 'bewegen', hulp: 'sluipt heel langzaam naar een plek', vb: 'sluip +120', lees: plek, grond: true, lijf: true, maak: (f, a) => loopNaar(f, plekX(a.x, f), 55) });
+const SEC = 'the number of seconds';
+opdracht('loop', { en: 'walk', soort: 'movement', hulp: 'walks to a place: ' + PLEKHULP, vb: 'walk middle', lees: plek, grond: true, lijf: true, maak: (f, a) => loopNaar(f, plekX(a.x, f), 120) });
+opdracht('ren', { en: 'run', soort: 'movement', hulp: 'runs to a place (same places as walk)', vb: 'run left', lees: plek, grond: true, lijf: true, maak: (f, a) => loopNaar(f, plekX(a.x, f), 400) });
+opdracht('sluip', { en: 'sneak', soort: 'movement', hulp: 'sneaks to a place very slowly', vb: 'sneak +120', lees: plek, grond: true, lijf: true, maak: (f, a) => loopNaar(f, plekX(a.x, f), 55) });
 opdracht('spring', {
-  soort: 'bewegen', hulp: 'springt; erachter mag: hoog, laag of een hoogte in pixels', vb: 'spring hoog', grond: true, lijf: true, groep: true,
-  lees: rest => { const t = rest.toLowerCase(); if (!t) return { h: 150 }; if (t === 'hoog') return { h: 380 }; if (t === 'laag') return { h: 55 }; const n = parseFloat(t); if (!/^\d+$/.test(t) || n < 20 || n > 900) throw new Error('kies: hoog, laag of een getal van 20 tot 900'); return { h: n }; },
+  en: 'jump', soort: 'movement', hulp: 'jumps; you may add: high, low or a height in pixels', vb: 'jump high', grond: true, lijf: true, groep: true,
+  lees: rest => { const t = nl('hoogte', rest.toLowerCase()); if (!t) return { h: 150 }; if (t === 'hoog') return { h: 380 }; if (t === 'laag') return { h: 55 }; const n = parseFloat(t); if (!/^\d+$/.test(t) || n < 20 || n > 900) throw new Error('choose: high, low or a number from 20 to 900'); return { h: n }; },
   maak: (f, a) => spring(f, a.h),
 });
-opdracht('salto', { soort: 'bewegen', hulp: 'sprong met een koprol in de lucht', vb: 'salto', lees: geen, grond: true, lijf: true, groep: true, maak: f => spring(f, 270, { salto: true }) });
-opdracht('draai', { soort: 'bewegen', hulp: 'draait een rondje om zijn as', vb: 'draai', lees: geen, grond: true, lijf: true, groep: true, maak: f => tijdActie(0.7, k => { const c = Math.cos(k * Math.PI * 2); f.rekX = Math.abs(c) < 0.12 ? (c < 0 ? -0.12 : 0.12) : c; f.pose.lijf = Math.sin(k * Math.PI) * 1.2; }) });
-opdracht('teleport', { soort: 'bewegen', hulp: 'verdwijnt in blokjes en komt ergens anders terug', vb: 'teleport 30%', lees: plek, grond: true, lijf: true, maak: (f, a) => teleport(f, plekX(a.x, f)) });
+opdracht('salto', { en: 'flip', soort: 'movement', hulp: 'a jump with a somersault in the air', vb: 'flip', lees: geen, grond: true, lijf: true, groep: true, maak: f => spring(f, 270, { salto: true }) });
+opdracht('draai', { en: 'spin', soort: 'movement', hulp: 'spins around once', vb: 'spin', lees: geen, grond: true, lijf: true, groep: true, maak: f => tijdActie(0.7, k => { const c = Math.cos(k * Math.PI * 2); f.rekX = Math.abs(c) < 0.12 ? (c < 0 ? -0.12 : 0.12) : c; f.pose.lijf = Math.sin(k * Math.PI) * 1.2; }) });
+opdracht('teleport', { soort: 'movement', hulp: 'falls apart into little blocks and comes back somewhere else', vb: 'teleport 30%', lees: plek, grond: true, lijf: true, maak: (f, a) => teleport(f, plekX(a.x, f)) });
 opdracht('vlieg', {
-  soort: 'bewegen', hulp: 'vliegt met vlammetjes naar een plek en blijft daar zweven: vlieg <plek> <hoog|midden|laag|40%>', vb: 'vlieg 60% hoog',
-  lees: rest => { const d = rest.toLowerCase().split(/\s+/).filter(Boolean); if (d.length < 1 || d.length > 2 || !PLEK.test(d[0]) || (d[1] && !PLEKY.test(d[1]))) throw new Error('zo: vlieg midden hoog  (plek: ' + PLEKHULP + '; hoogte: hoog, midden, laag of 40%)'); return { x: d[0], y: d[1] || 'hoog' }; },
+  en: 'fly', soort: 'movement', hulp: 'flies to a place on little flames and hovers there: fly <place> <high|middle|low|40%>', vb: 'fly 60% high',
+  lees: rest => {
+    const d = rest.toLowerCase().split(/\s+/).filter(Boolean);
+    if (d[0]) d[0] = plekNL(d[0]);
+    if (d[1]) d[1] = nl('hoogte', d[1]);
+    if (d.length < 1 || d.length > 2 || !PLEK.test(d[0]) || (d[1] && !PLEKY.test(d[1]))) throw new Error('like this: fly middle high  (place: ' + PLEKHULP + '; height: high, middle, low or 40%)');
+    return { x: d[0], y: d[1] || 'hoog' };
+  },
   maak: (f, a) => { const x = plekX(a.x, f); return vlieg(f, x, plekY(a.y, f, x)); },
 });
-opdracht('land', { soort: 'bewegen', hulp: 'komt weer naar de grond (na vlieg of klim)', vb: 'land', lees: geen, ook: ['val'], maak: f => land(f) });
+opdracht('land', { soort: 'movement', hulp: 'comes back down to the floor (after fly or climb)', vb: 'land', lees: geen, ook: ['val', 'drop'], maak: f => land(f) });
 opdracht('klim', {
-  soort: 'bewegen', hulp: 'klimt tegen de muur van het scherm omhoog en blijft daar hangen: klim links|rechts [hoe hoog in %]', vb: 'klim rechts 60%', grond: true, lijf: true,
-  lees: rest => { const d = rest.toLowerCase().split(/\s+/).filter(Boolean); if (!['links', 'rechts'].includes(d[0]) || d.length > 2 || (d[1] && !/^\d+%$/.test(d[1]))) throw new Error('zo: klim rechts 60%'); return { kant: d[0], deel: klem(d[1] ? parseFloat(d[1]) / 100 : 0.55, 0, 1) }; },
+  en: 'climb', soort: 'movement', hulp: 'climbs up the side of the screen and hangs there: climb left|right [how high in %]', vb: 'climb right 60%', grond: true, lijf: true,
+  lees: rest => {
+    const d = rest.toLowerCase().split(/\s+/).filter(Boolean);
+    if (d[0]) d[0] = nl('kant', d[0]);
+    if (!['links', 'rechts'].includes(d[0]) || d.length > 2 || (d[1] && !/^\d+%$/.test(d[1]))) throw new Error('like this: climb right 60%');
+    return { kant: d[0], deel: klem(d[1] ? parseFloat(d[1]) / 100 : 0.55, 0, 1) };
+  },
   maak: (f, a) => klim(f, a.kant, a.deel),
 });
-opdracht('rondje', { soort: 'bewegen', hulp: 'rent één keer helemaal rond over muren en plafond', vb: 'rondje', lees: geen, grond: true, lijf: true, maak: f => rondje(f) });
+opdracht('rondje', { en: 'lap', soort: 'movement', hulp: 'runs one full lap over the walls and the ceiling', vb: 'lap', lees: geen, grond: true, lijf: true, maak: f => rondje(f) });
 
-const metNaam = t => t.replace(/\{naam\}/gi, M.gebruiker || 'jij');      // {naam} in een tekst wordt jouw naam op deze pc
+const metNaam = t => t.replace(/\{(naam|name)\}/gi, M.gebruiker || 'you');      // {name} in een tekst wordt jouw naam op deze pc
 function praat(soort) { return (f, a) => { const b = new Bel(soort, metNaam(a.tekst)); f.bel = b; return zodra(() => f.bel !== b); }; }
-opdracht('zeg', { soort: 'praten', hulp: 'tekstballon; hij wacht tot je het gelezen hebt (zet + ervoor om meteen door te gaan); {naam} wordt jouw naam', vb: 'zeg Hoi! Ik ben Maatje.', lees: tekstArg, magInLucht: true, maak: praat('zeg') });
-opdracht('denk', { soort: 'praten', hulp: 'denkwolkje', vb: 'denk Hmm...', lees: tekstArg, magInLucht: true, maak: praat('denk') });
-opdracht('roep', { soort: 'praten', hulp: 'grote letters', vb: 'roep KLAAR!', lees: tekstArg, magInLucht: true, maak: praat('roep') });
-opdracht('fluister', { soort: 'praten', hulp: 'grijs en langzaam', vb: 'fluister psst', lees: tekstArg, magInLucht: true, maak: praat('fluister') });
-opdracht('stil', { soort: 'praten', hulp: 'tekstballon meteen weg', vb: 'stil', lees: geen, stil: true, maak: f => { f.bel = null; return null; } });
+opdracht('zeg', { en: 'say', soort: 'talking', hulp: 'speech bubble; he waits until you have read it (put + in front to carry on right away); {name} becomes your name', vb: "say Hi! I'm Maatje.", lees: tekstArg, magInLucht: true, maak: praat('zeg') });
+opdracht('denk', { en: 'think', soort: 'talking', hulp: 'thought bubble', vb: 'think Hmm...', lees: tekstArg, magInLucht: true, maak: praat('denk') });
+opdracht('roep', { en: 'shout', soort: 'talking', hulp: 'big letters', vb: 'shout DONE!', lees: tekstArg, magInLucht: true, maak: praat('roep') });
+opdracht('fluister', { en: 'whisper', soort: 'talking', hulp: 'grey and slow', vb: 'whisper psst', lees: tekstArg, magInLucht: true, maak: praat('fluister') });
+opdracht('stil', { en: 'quiet', soort: 'talking', hulp: 'removes the speech bubble right away', vb: 'quiet', lees: geen, stil: true, maak: f => { f.bel = null; return null; } });
 
-opdracht('emotie', { soort: 'gevoel', hulp: 'tekentje boven zijn hoofd: ' + Object.keys(EMO).join(', '), vb: 'emotie hart', lees: keuze(Object.keys(EMO)), stil: true, groep: true, maak: (f, a) => { f.emote = { naam: a.k, t: 0, duur: 1.5 }; M.klank('pop'); return wacht(0.6); } });
+opdracht('emotie', { en: 'emote', soort: 'feelings', hulp: 'a little sign above his head: ' + en('emo', Object.keys(EMO)).join(', '), vb: 'emote heart', lees: keuze('emo', Object.keys(EMO)), stil: true, groep: true, maak: (f, a) => { f.emote = { naam: a.k, t: 0, duur: 1.5 }; M.klank('pop'); return wacht(0.6); } });
 const OOGLIJST = Object.keys(OGEN).filter(k => k !== 'plus');
 opdracht('ogen', {
-  soort: 'gevoel', hulp: 'andere ogen: ' + OOGLIJST.join(', ') + '; met een getal erachter voor zoveel seconden', vb: 'ogen blij 2', stil: true, groep: true,
-  lees: rest => { const d = rest.toLowerCase().split(/\s+/).filter(Boolean); if (!OOGLIJST.includes(d[0]) || d.length > 2 || (d[1] && !/^\d+([.,]\d+)?$/.test(d[1]))) throw new Error('kies uit: ' + OOGLIJST.join(', ') + ' (en eventueel een aantal seconden)'); return { k: d[0], sec: d[1] ? parseFloat(d[1].replace(',', '.')) : 0 }; },
+  en: 'eyes', soort: 'feelings', hulp: 'other eyes: ' + en('ogen', OOGLIJST).join(', ') + '; add a number for that many seconds', vb: 'eyes happy 2', stil: true, groep: true,
+  lees: rest => {
+    const d = rest.toLowerCase().split(/\s+/).filter(Boolean);
+    if (d[0]) d[0] = nl('ogen', d[0]);
+    if (!OOGLIJST.includes(d[0]) || d.length > 2 || (d[1] && !/^\d+([.,]\d+)?$/.test(d[1]))) throw new Error('choose one of: ' + en('ogen', OOGLIJST).join(', ') + ' (and maybe a number of seconds)');
+    return { k: d[0], sec: d[1] ? parseFloat(d[1].replace(',', '.')) : 0 };
+  },
   maak: (f, a) => { if (a.sec) { f.ogen = a.k; f.ogenTot = M.t + a.sec; } else { f.ogenVast = a.k === 'normaal' ? null : a.k; f.ogenTot = 0; } return null; },
 });
 opdracht('kijk', {
-  soort: 'gevoel', hulp: 'kijkt even een kant op: links, rechts, omhoog, omlaag, voor of muis', vb: 'kijk omhoog', lees: keuze(['links', 'rechts', 'omhoog', 'omlaag', 'voor', 'muis']), stil: true,
+  en: 'look', soort: 'feelings', hulp: 'looks one way for a moment: left, right, up, down, ahead or mouse', vb: 'look up', lees: keuze('kijk', ['links', 'rechts', 'omhoog', 'omlaag', 'voor', 'muis']), stil: true,
   maak: (f, a) => { const R = { links: [-1, 0], rechts: [1, 0], omhoog: [0, -1], omlaag: [0, 1], voor: [0, 0] }[a.k]; if (!R) { f.kijkTot = 0; return null; } f.kijkVast = R; f.kijkTot = M.t + 2.5; if (R[0] && f.vlak === 0) f.kijk = R[0]; return null; },
 });
-opdracht('zwaai', { soort: 'gevoel', hulp: 'zwaait', vb: 'zwaai', lees: geen, lijf: true, groep: true, maak: f => tijdActie(1.3, (k, t) => { f.pose[f.kijk > 0 ? 'armR' : 'armL'] = Math.sin(t * 17) > 0 ? -3 : -2.2; f.ogenNu = 'blij'; }) });
-opdracht('juich', { soort: 'gevoel', hulp: 'armen omhoog en op en neer', vb: 'juich', lees: geen, lijf: true, groep: true, maak: f => { if (f.hoofd) M.klank('ster'); return tijdActie(1.2, (k, t) => { f.pose.armL = f.pose.armR = -3; f.pose.lijf = Math.abs(Math.sin(t * 9)) * 0.9; f.ogenNu = 'blij'; }); } });
-opdracht('knik', { soort: 'gevoel', hulp: 'knikt ja', vb: 'knik', lees: geen, ook: ['ja'], lijf: true, groep: true, maak: f => tijdActie(0.75, (k, t) => { f.pose.lijf = -Math.abs(Math.sin(t * 8.4)) * 0.6; }) });
-opdracht('schud', { soort: 'gevoel', hulp: 'schudt nee', vb: 'schud', lees: geen, ook: ['nee'], lijf: true, groep: true, maak: f => tijdActie(0.8, (k, t) => { f.pose.dx = Math.round(Math.sin(t * 24) * 0.5 * f.maat); f.ogenNu = 'dicht'; }) });
-opdracht('buig', { soort: 'gevoel', hulp: 'maakt een buiging', vb: 'buig', lees: geen, lijf: true, grond: true, groep: true, maak: f => tijdActie(1.1, k => { const z = k < 0.3 ? zacht(k / 0.3) : k > 0.7 ? zacht((1 - k) / 0.3) : 1; f.pose.schuin = 0.6 * f.kijk * z; f.ogenNu = 'dicht'; }) });
-opdracht('schrik', { soort: 'gevoel', hulp: 'schrikt: uitroepteken en een sprongetje', vb: 'schrik', lees: geen, lijf: true, grond: true, groep: true, maak: f => { f.emote = { naam: 'uitroep', t: 0, duur: 1 }; f.ogen = 'groot'; f.ogenTot = M.t + 0.9; if (f.hoofd) M.klank('pop'); return spring(f, 45); } });
-opdracht('dans', { soort: 'gevoel', hulp: 'danst (met erachter hoeveel seconden)', vb: 'dans 3', lees: getal('het aantal seconden', 0.5, 60, 3), lijf: true, grond: true, groep: true, maak: (f, a) => dans(f, a.n) });
-opdracht('zit', { soort: 'gevoel', hulp: 'gaat zitten (tot hij weer iets anders moet)', vb: 'zit', lees: geen, lijf: true, groep: true, maak: f => { f.houding = 'zit'; return wacht(0.35); } });
-opdracht('sta', { soort: 'gevoel', hulp: 'staat op', vb: 'sta', lees: geen, lijf: true, groep: true, maak: () => wacht(0.25) });
-opdracht('slaap', { soort: 'gevoel', hulp: 'gaat slapen, tot een nieuwe opdracht of tot je hem aanklikt', vb: 'slaap', lees: geen, lijf: true, groep: true, maak: f => { f.houding = 'slaap'; f.vrijSlaap = false; return wacht(0.4); } });
-opdracht('wakker', { soort: 'gevoel', hulp: 'wordt wakker', vb: 'wakker', lees: geen, lijf: true, groep: true, maak: f => { f.ogen = 'groot'; f.ogenTot = M.t + 0.6; return wacht(0.3); } });
-opdracht('typ', { soort: 'gevoel', hulp: 'zit achter een laptopje te typen (met erachter hoeveel seconden)', vb: 'typ 3', lees: getal('het aantal seconden', 0.5, 600, 4), lijf: true, grond: true, maak: (f, a) => typ(f, a.n) });
+opdracht('zwaai', { en: 'wave', soort: 'feelings', hulp: 'waves', vb: 'wave', lees: geen, lijf: true, groep: true, maak: f => tijdActie(1.3, (k, t) => { f.pose[f.kijk > 0 ? 'armR' : 'armL'] = Math.sin(t * 17) > 0 ? -3 : -2.2; f.ogenNu = 'blij'; }) });
+opdracht('juich', { en: 'cheer', soort: 'feelings', hulp: 'arms up, bouncing up and down', vb: 'cheer', lees: geen, lijf: true, groep: true, maak: f => { if (f.hoofd) M.klank('ster'); return tijdActie(1.2, (k, t) => { f.pose.armL = f.pose.armR = -3; f.pose.lijf = Math.abs(Math.sin(t * 9)) * 0.9; f.ogenNu = 'blij'; }); } });
+opdracht('knik', { en: 'nod', soort: 'feelings', hulp: 'nods yes', vb: 'nod', lees: geen, ook: ['ja', 'yes'], lijf: true, groep: true, maak: f => tijdActie(0.75, (k, t) => { f.pose.lijf = -Math.abs(Math.sin(t * 8.4)) * 0.6; }) });
+opdracht('schud', { en: 'shake', soort: 'feelings', hulp: 'shakes no', vb: 'shake', lees: geen, ook: ['nee', 'no'], lijf: true, groep: true, maak: f => tijdActie(0.8, (k, t) => { f.pose.dx = Math.round(Math.sin(t * 24) * 0.5 * f.maat); f.ogenNu = 'dicht'; }) });
+opdracht('buig', { en: 'bow', soort: 'feelings', hulp: 'takes a bow', vb: 'bow', lees: geen, lijf: true, grond: true, groep: true, maak: f => tijdActie(1.1, k => { const z = k < 0.3 ? zacht(k / 0.3) : k > 0.7 ? zacht((1 - k) / 0.3) : 1; f.pose.schuin = 0.6 * f.kijk * z; f.ogenNu = 'dicht'; }) });
+opdracht('schrik', { en: 'startle', soort: 'feelings', hulp: 'gets a fright: an exclamation mark and a little hop', vb: 'startle', lees: geen, lijf: true, grond: true, groep: true, maak: f => { f.emote = { naam: 'uitroep', t: 0, duur: 1 }; f.ogen = 'groot'; f.ogenTot = M.t + 0.9; if (f.hoofd) M.klank('pop'); return spring(f, 45); } });
+opdracht('dans', { en: 'dance', soort: 'feelings', hulp: 'dances (add how many seconds)', vb: 'dance 3', lees: getal(SEC, 0.5, 60, 3), lijf: true, grond: true, groep: true, maak: (f, a) => dans(f, a.n) });
+opdracht('zit', { en: 'sit', soort: 'feelings', hulp: 'sits down (until he has to do something else)', vb: 'sit', lees: geen, lijf: true, groep: true, maak: f => { f.houding = 'zit'; return wacht(0.35); } });
+opdracht('sta', { en: 'stand', soort: 'feelings', hulp: 'stands up', vb: 'stand', lees: geen, lijf: true, groep: true, maak: () => wacht(0.25) });
+opdracht('slaap', { en: 'sleep', soort: 'feelings', hulp: 'goes to sleep, until a new command or until you click him', vb: 'sleep', lees: geen, lijf: true, groep: true, maak: f => { f.houding = 'slaap'; f.vrijSlaap = false; return wacht(0.4); } });
+opdracht('wakker', { en: 'wake', soort: 'feelings', hulp: 'wakes up', vb: 'wake', lees: geen, lijf: true, groep: true, maak: f => { f.ogen = 'groot'; f.ogenTot = M.t + 0.6; return wacht(0.3); } });
+opdracht('typ', { en: 'type', soort: 'feelings', hulp: 'sits typing on a little laptop (add how many seconds)', vb: 'type 3', lees: getal(SEC, 0.5, 600, 4), lijf: true, grond: true, maak: (f, a) => typ(f, a.n) });
 
-opdracht('vuurwerk', { soort: 'effect', hulp: 'vuurpijlen op het scherm waar hij staat (met erachter hoeveel)', vb: 'vuurwerk 6', lees: getal('het aantal pijlen', 1, 40, 6), stil: true, maak: (f, a) => { M.fx.push(new Lanceerder(M.schermVan(f.midden().x), Math.round(a.n))); return null; } });
+opdracht('vuurwerk', { en: 'fireworks', soort: 'effects', hulp: 'rockets on the screen he is on (add how many)', vb: 'fireworks 6', lees: getal('the number of rockets', 1, 40, 6), stil: true, maak: (f, a) => { M.fx.push(new Lanceerder(M.schermVan(f.midden().x), Math.round(a.n))); return null; } });
 opdracht('laser', {
-  soort: 'effect', hulp: 'laserstralen uit zijn ogen; zonder iets erachter zwaait de straal over het scherm, of: laser muis, laser <plek> <hoogte>', vb: 'laser', lijf: true,
-  lees: rest => { const d = rest.toLowerCase().split(/\s+/).filter(Boolean); if (!d.length) return {}; if (d.length === 1 && d[0] === 'muis') return { x: 'muis' }; if (d.length !== 2 || !PLEK.test(d[0]) || !PLEKY.test(d[1])) throw new Error('zo: laser   of   laser muis   of   laser 80% hoog'); return { x: d[0], y: d[1] }; },
+  soort: 'effects', hulp: 'laser beams from his eyes; with nothing after it the beam sweeps across the screen, or: laser mouse, laser <place> <height>', vb: 'laser', lijf: true,
+  lees: rest => {
+    const d = rest.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!d.length) return {};
+    if (d.length === 1 && nl('plek', d[0]) === 'muis') return { x: 'muis' };
+    if (d.length === 2) { d[0] = plekNL(d[0]); d[1] = nl('hoogte', d[1]); }
+    if (d.length !== 2 || !PLEK.test(d[0]) || !PLEKY.test(d[1])) throw new Error('like this: laser   or   laser mouse   or   laser 80% high');
+    return { x: d[0], y: d[1] };
+  },
   maak: (f, a) => {
     const s = f.maat;
     let doel;
@@ -384,17 +433,17 @@ opdracht('laser', {
   },
 });
 opdracht('bliksem', {
-  soort: 'effect', hulp: 'de bliksem slaat in: hij is even zwart geblakerd', vb: 'bliksem', lees: geen, lijf: true,
+  en: 'lightning', soort: 'effects', hulp: 'lightning strikes: he is scorched black for a moment', vb: 'lightning', lees: geen, lijf: true,
   maak: f => reeks([
     () => { M.fx.push(new Bliksem(f)); return wacht(0.12); },
     () => { f.verkoold = 1.9; f.bel = null; return tijdActie(1.9, (k, t) => { f.pose.dx = k < 0.3 ? Math.round(Math.sin(t * 60) * 2) : 0; if (M.rnd() < 0.3) { const kop = f.kop(); M.deel({ x: kop.x + (M.rnd() - 0.5) * 8 * f.maat, y: kop.y, vx: (M.rnd() - 0.5) * 30, vy: -40 - M.rnd() * 40, l: 0.8, k: '#8a8782', m: Math.max(2, Math.round(f.maat * 0.8)), fade: 0.8, a: 0.7 }); } }); },
   ]),
 });
-opdracht('regenboog', { soort: 'effect', hulp: 'een regenboog achter hem aan: regenboog aan|uit', vb: 'regenboog aan', lees: aanUit, stil: true, maak: (f, a) => { f.spoor = a.aan; return null; } });
-opdracht('sneeuw', { soort: 'effect', hulp: 'het sneeuwt over het hele bureaublad (met erachter hoeveel seconden)', vb: 'sneeuw 6', lees: getal('het aantal seconden', 1, 300, 12), stil: true, maak: (f, a) => { M.fx.push(new Sneeuw(a.n)); return null; } });
-opdracht('titel', { soort: 'effect', hulp: 'grote letters vallen in beeld en spatten daarna uit elkaar', vb: 'titel KLAAR!', lees: rest => { const a = tekstArg(rest); a.tekst = a.tekst.slice(0, 60); return a; }, stil: true, maak: (f, a) => { M.fx.push(new Titel(metNaam(a.tekst), M.schermVan(f.midden().x), f.kleurNu)); return null; } });
+opdracht('regenboog', { en: 'rainbow', soort: 'effects', hulp: 'a rainbow trails behind him: rainbow on|off', vb: 'rainbow on', lees: aanUit, stil: true, maak: (f, a) => { f.spoor = a.aan; return null; } });
+opdracht('sneeuw', { en: 'snow', soort: 'effects', hulp: 'it snows all over the desktop (add how many seconds)', vb: 'snow 6', lees: getal(SEC, 1, 300, 12), stil: true, maak: (f, a) => { M.fx.push(new Sneeuw(a.n)); return null; } });
+opdracht('titel', { en: 'title', soort: 'effects', hulp: 'big letters drop into view and burst apart afterwards', vb: 'title DONE!', lees: rest => { const a = tekstArg(rest); a.tekst = a.tekst.slice(0, 60); return a; }, stil: true, maak: (f, a) => { M.fx.push(new Titel(metNaam(a.tekst), M.schermVan(f.midden().x), f.kleurNu)); return null; } });
 opdracht('zwaard', {
-  soort: 'effect', hulp: 'trekt een zwaard en slaat: een witte streep dwars over het scherm', vb: 'zwaard', lees: geen, lijf: true, grond: true,
+  en: 'sword', soort: 'effects', hulp: 'draws a sword and strikes: a white streak right across the screen', vb: 'sword', lees: geen, lijf: true, grond: true,
   maak: f => {
     const arm = f.kijk > 0 ? 'armR' : 'armL', s = f.maat;
     return reeks([
@@ -404,18 +453,19 @@ opdracht('zwaard', {
     ]);
   },
 });
-opdracht('bal', { soort: 'effect', hulp: 'er valt een bal uit de lucht (je kunt hem met de muis wegtikken)', vb: 'bal', lees: geen, stil: true, maak: f => { M.maakBal(f); return wacht(0.2); } });
-opdracht('trap', { soort: 'effect', hulp: 'rent naar de bal en trapt hem weg', vb: 'trap', lees: geen, lijf: true, grond: true, maak: f => voetbal(f, 8, true) });
-opdracht('voetbal', { soort: 'effect', hulp: 'blijft achter de bal aan rennen en trappen (met erachter hoeveel seconden)', vb: 'voetbal 5', lees: getal('het aantal seconden', 1, 120, 8), lijf: true, grond: true, maak: (f, a) => voetbal(f, a.n, false) });
+opdracht('bal', { en: 'ball', soort: 'effects', hulp: 'a ball drops from the sky (you can flick it away with the mouse)', vb: 'ball', lees: geen, stil: true, maak: f => { M.maakBal(f); return wacht(0.2); } });
+opdracht('trap', { en: 'kick', soort: 'effects', hulp: 'runs to the ball and kicks it away', vb: 'kick', lees: geen, lijf: true, grond: true, maak: f => voetbal(f, 8, true) });
+opdracht('voetbal', { en: 'soccer', soort: 'effects', hulp: 'keeps chasing and kicking the ball (add how many seconds)', vb: 'soccer 5', lees: getal(SEC, 1, 120, 8), ook: ['football'], lijf: true, grond: true, maak: (f, a) => voetbal(f, a.n, false) });
 
+const KLEURLIJST = en('kleur', Object.keys(KLEUREN)).join(', ');
 opdracht('kleur', {
-  soort: 'uiterlijk', hulp: 'andere kleur: ' + Object.keys(KLEUREN).join(', ') + ', regenboog, of een code zoals #ff8800', vb: 'kleur blauw', stil: true,
-  lees: rest => { const t = rest.toLowerCase(); if (t === 'regenboog') return { wissel: true }; const k = M.leesKleur(t); if (!k) throw new Error('kies uit: ' + Object.keys(KLEUREN).join(', ') + ', regenboog of een code zoals #ff8800'); return { kleur: k }; },
+  en: 'color', soort: 'looks', hulp: 'another color: ' + KLEURLIJST + ', rainbow, or a code like #ff8800', vb: 'color blue', ook: ['colour'], stil: true,
+  lees: rest => { const t = nl('kleur', rest.toLowerCase()); if (t === 'regenboog') return { wissel: true }; const k = M.leesKleur(t); if (!k) throw new Error('choose one of: ' + KLEURLIJST + ', rainbow or a code like #ff8800'); return { kleur: k }; },
   maak: (f, a) => { f.kleurWissel = !!a.wissel; if (a.kleur) { f.kleur = a.kleur; if (f.hoofd) { M.inst.kleur = a.kleur; M.bewaar(); } } const m = f.midden(); M.vonken(m.x, m.y, 8, [a.kleur || '#ffffff', '#ffffff'], 150); M.klank('pop'); return null; },
 });
 opdracht('maat', {
-  soort: 'uiterlijk', hulp: 'hoe groot hij is: klein, gewoon, groot, reus of een getal van 2 tot 16', vb: 'maat groot', lijf: true,
-  lees: rest => { const t = rest.toLowerCase(), N = { klein: 3, gewoon: 6, groot: 10, reus: 14 }; if (N[t]) return { n: N[t] }; const n = parseInt(t, 10); if (!/^\d+$/.test(t) || n < 2 || n > 16) throw new Error('kies: klein, gewoon, groot, reus of een getal van 2 tot 16'); return { n }; },
+  en: 'size', soort: 'looks', hulp: 'how big he is: small, normal, big, giant or a number from 2 to 16', vb: 'size big', lijf: true,
+  lees: rest => { const t = nl('maat', rest.toLowerCase()), N = { klein: 3, gewoon: 6, groot: 10, reus: 14 }; if (N[t]) return { n: N[t] }; const n = parseInt(t, 10); if (!/^\d+$/.test(t) || n < 2 || n > 16) throw new Error('choose: small, normal, big, giant or a number from 2 to 16'); return { n }; },
   maak: (f, a) => {
     const van = f.maat, naar = a.n;
     if (van === naar) return null;
@@ -427,11 +477,11 @@ opdracht('maat', {
     });
   },
 });
-opdracht('hoed', { soort: 'uiterlijk', hulp: 'iets op zijn hoofd: ' + Object.keys(HOEDEN).join(', '), vb: 'hoed kroon', lees: keuze(Object.keys(HOEDEN)), stil: true, maak: (f, a) => { f.hoed = a.k; if (f.hoofd) { M.inst.hoed = a.k; M.bewaar(); } const k = f.kop(); M.vonken(k.x, k.y, 6, ['#ffffff', '#ffe066'], 120); M.klank('pop'); return null; } });
+opdracht('hoed', { en: 'hat', soort: 'looks', hulp: 'something on his head: ' + en('hoed', Object.keys(HOEDEN)).join(', '), vb: 'hat crown', lees: keuze('hoed', Object.keys(HOEDEN)), stil: true, maak: (f, a) => { f.hoed = a.k; if (f.hoofd) { M.inst.hoed = a.k; M.bewaar(); } const k = f.kop(); M.vonken(k.x, k.y, 6, ['#ffffff', '#ffe066'], 120); M.klank('pop'); return null; } });
 
-opdracht('kloon', { soort: 'vriendjes', hulp: 'er komen vriendjes bij die achter hem aan lopen en hem nadoen (hooguit 12)', vb: 'kloon 3', lees: getal('het aantal vriendjes', 1, 12, 3), stil: true, maak: (f, a) => { for (let i = 0; i < Math.round(a.n); i++) M.nieuweKloon(); return wacht(0.3); } });
+opdracht('kloon', { en: 'clone', soort: 'friends', hulp: 'friends appear who follow him and copy what he does (at most 12)', vb: 'clone 3', lees: getal('the number of friends', 1, 12, 3), stil: true, maak: (f, a) => { for (let i = 0; i < Math.round(a.n); i++) M.nieuweKloon(); return wacht(0.3); } });
 opdracht('opruimen', {
-  soort: 'vriendjes', hulp: 'vriendjes, bal, sneeuw en regenboog weg', vb: 'opruimen', lees: geen, stil: true,
+  en: 'cleanup', soort: 'friends', hulp: 'friends, ball, snow and rainbow away', vb: 'cleanup', lees: geen, ook: ['clear'], stil: true,
   maak: f => {
     M.delen.length = 0;
     for (let i = M.figuren.length - 1; i >= 1; i--) { const k = M.figuren[i], m = k.midden(); M.plof(m.x, m.y, k.kleurNu); if (M.gepakt === k) { M.gepakt = null; M.pakInfo = null; } }
@@ -440,21 +490,22 @@ opdracht('opruimen', {
     return null;
   },
 });
-opdracht('werk', { soort: 'meeleven', hulp: 'zit te typen zolang Claude aan het werk is; dat gaat vanzelf als meeleven aan staat', vb: 'werk', lees: geen, lijf: true, grond: true, maak: f => werk(f) });
+
+opdracht('werk', { en: 'work', soort: 'claude', hulp: 'sits typing for as long as Claude is working; this happens by itself when follow is on', vb: 'work', lees: geen, lijf: true, grond: true, maak: f => werk(f) });
 opdracht('meeleven', {
-  soort: 'meeleven', hulp: 'meeleven met Claude: typen als Claude werkt, juichen als hij klaar is, zwaaien als hij je nodig heeft: meeleven aan|uit', vb: 'meeleven aan', lees: aanUit, stil: true,
+  en: 'follow', soort: 'claude', hulp: 'follow along with Claude: type while Claude works, cheer when he is done, wave when he needs you: follow on|off', vb: 'follow on', lees: aanUit, stil: true,
   maak: (f, a) => { M.inst.meeleven = a.aan; if (!a.aan) M.werk.sessies = {}; M.bewaar(); return null; },
 });
 
-opdracht('wacht', { soort: 'overig', hulp: 'doet zoveel seconden niets', vb: 'wacht 1.5', lees: getal('het aantal seconden', 0, 600), stil: true, maak: (f, a) => wacht(a.n) });
-opdracht('stop', { soort: 'overig', hulp: 'gooit alles weg wat hij nog moest doen', vb: 'stop', lees: geen, stil: true, maak: () => null });
-opdracht('vrij', { soort: 'overig', hulp: 'vanzelf rondlopen als hij niets te doen heeft: vrij aan|uit', vb: 'vrij aan', lees: aanUit, stil: true, maak: (f, a) => { M.inst.vrij = a.aan; M.bewaar(); return null; } });
-opdracht('geluid', { soort: 'overig', hulp: 'geluid aan|uit', vb: 'geluid aan', lees: aanUit, stil: true, maak: (f, a) => { M.inst.geluid = a.aan; M.bewaar(); return null; } });
-opdracht('weg', { soort: 'overig', hulp: 'verdwijnt helemaal van het scherm (kom haalt hem terug)', vb: 'weg', lees: geen, stil: true, maak: () => reeks([() => { for (const k of M.figuren) { const m = k.midden(); M.plof(m.x, m.y, k.kleurNu); k.zichtbaar = false; k.bel = null; } return wacht(0.5); }, () => { M.zetZicht(false, true); return null; }]) });
-opdracht('kom', { soort: 'overig', hulp: 'komt terug op het scherm', vb: 'kom', lees: geen, stil: true, maak: () => null });
+opdracht('wacht', { en: 'wait', soort: 'other', hulp: 'does nothing for that many seconds', vb: 'wait 1.5', lees: getal(SEC, 0, 600), stil: true, maak: (f, a) => wacht(a.n) });
+opdracht('stop', { soort: 'other', hulp: 'throws away everything he still had to do', vb: 'stop', lees: geen, stil: true, maak: () => null });
+opdracht('vrij', { en: 'roam', soort: 'other', hulp: 'wander around by himself when he has nothing to do: roam on|off', vb: 'roam on', lees: aanUit, stil: true, maak: (f, a) => { M.inst.vrij = a.aan; M.bewaar(); return null; } });
+opdracht('geluid', { en: 'sound', soort: 'other', hulp: 'sound on|off', vb: 'sound on', lees: aanUit, stil: true, maak: (f, a) => { M.inst.geluid = a.aan; M.bewaar(); return null; } });
+opdracht('weg', { en: 'hide', soort: 'other', hulp: 'disappears from the screen completely (come brings him back)', vb: 'hide', lees: geen, stil: true, maak: () => reeks([() => { for (const k of M.figuren) { const m = k.midden(); M.plof(m.x, m.y, k.kleurNu); k.zichtbaar = false; k.bel = null; } return wacht(0.5); }, () => { M.zetZicht(false, true); return null; }]) });
+opdracht('kom', { en: 'come', soort: 'other', hulp: 'comes back onto the screen', vb: 'come', lees: geen, stil: true, maak: () => null });
 
 /* ================= de taal: van regels tekst naar opdrachten ================= */
-function verschil(a, b) {                            // hoeveel letters anders (voor "bedoel je ...?")
+function verschil(a, b) {                            // hoeveel letters anders (voor "did you mean ...?")
   const m = [];
   for (let i = 0; i <= a.length; i++) m[i] = [i];
   for (let j = 1; j <= b.length; j++) m[0][j] = j;
@@ -473,31 +524,32 @@ M.ontleed = function (regels) {
     let naam = (sp < 0 ? r : r.slice(0, sp)).toLowerCase();
     const rest = sp < 0 ? '' : r.slice(sp + 1).trim();
     const top = stapel[stapel.length - 1];
-    if (naam === 'herhaal') {
+    if (naam === 'repeat' || naam === 'herhaal') {
       const n = parseInt(rest, 10);
-      if (!/^\d+$/.test(rest) || n < 1 || n > 100) fouten.push({ regel: i + 1, tekst: 'zo: herhaal 3  (van 1 tot 100), en sluit af met: einde' });
+      if (!/^\d+$/.test(rest) || n < 1 || n > 100) fouten.push({ regel: i + 1, tekst: 'like this: repeat 3  (from 1 to 100), and close it with: end' });
       stapel.push({ items: [], n: n || 1 });
       return;
     }
-    if (naam === 'einde') {
-      if (stapel.length < 2) { fouten.push({ regel: i + 1, tekst: 'einde zonder herhaal ervoor' }); return; }
+    if (naam === 'end' || naam === 'einde') {
+      if (stapel.length < 2) { fouten.push({ regel: i + 1, tekst: 'end without a repeat before it' }); return; }
       const b = stapel.pop(), doel = stapel[stapel.length - 1].items;
       for (let k = 0; k < b.n; k++) { totaal += b.items.length; if (totaal > 3000) break; for (const it of b.items) doel.push(it); }
       return;
     }
+    const getypt = naam;
     naam = ALIAS[naam] || naam;
     const def = OPDR[naam];
     if (!def) {
       let beste = null, bd = 3;
-      for (const k of Object.keys(OPDR).concat(Object.keys(ALIAS))) { const d = verschil(naam, k); if (d < bd) { bd = d; beste = k; } }
-      fouten.push({ regel: i + 1, tekst: 'de opdracht "' + naam + '" ken ik niet' + (beste ? ' (bedoel je ' + beste + '?)' : '') });
+      for (const k of Object.keys(ALIAS).concat(Object.keys(OPDR))) { const d = verschil(getypt, k); if (d < bd) { bd = d; beste = k; } }
+      fouten.push({ regel: i + 1, tekst: 'I do not know the command "' + getypt + '"' + (beste ? ' (did you mean ' + beste + '?)' : '') });
       return;
     }
     try { top.items.push({ def, args: def.lees(rest), nietWachten, regel: i + 1 }); totaal++; }
-    catch (e) { fouten.push({ regel: i + 1, tekst: naam + ': ' + e.message }); }
+    catch (e) { fouten.push({ regel: i + 1, tekst: getypt + ': ' + e.message }); }
   });
-  if (stapel.length > 1) fouten.push({ regel: (regels || []).length, tekst: 'er mist een einde bij herhaal' });
-  if (totaal > 3000) fouten.push({ regel: 0, tekst: 'dat zijn meer dan 3000 opdrachten: te veel' });
+  if (stapel.length > 1) fouten.push({ regel: (regels || []).length, tekst: 'an end is missing after repeat' });
+  if (totaal > 3000) fouten.push({ regel: 0, tekst: 'that is more than 3000 commands: too many' });
   return { items: uit, fouten };
 };
 /* opdrachten in de wachtrij van het poppetje zetten */
@@ -518,7 +570,7 @@ M.doe = function (regels, opt) {
   }
   for (const it of items) f.rij.push(it);
   const u = { ok: true, aantal: items.length };
-  if (M.pauze) u.let_op = 'Maatje is verborgen: hij doet dit pas na de opdracht "kom"';
+  if (M.pauze) u.let_op = 'Maatje is hidden: he will only do this after the command "come"';
   return u;
 };
 M.bezig = function () {
@@ -526,8 +578,14 @@ M.bezig = function () {
   for (const e of M.fx) if (e.telt) return true;
   return false;
 };
+/* de lijst voor "help": het Engelse woord voorop, de andere woorden die ook werken erachter */
 M.hulp = function () {
   const ook = {};
   for (const a in ALIAS) (ook[ALIAS[a]] = ook[ALIAS[a]] || []).push(a);
-  return Object.keys(OPDR).map(n => ({ naam: n, soort: OPDR[n].soort, hulp: OPDR[n].hulp, vb: OPDR[n].vb, ook: ook[n] || [] }));
+  return Object.keys(OPDR).map(n => {
+    const d = OPDR[n], rest = (ook[n] || []).filter(a => a !== d.en);
+    return { naam: d.en, soort: d.soort, hulp: d.hulp, vb: d.vb, ook: (d.en !== n ? [n] : []).concat(rest) };
+  });
 };
+/* Engelse woorden voor de status (wat hij doet, wat hij op heeft) */
+M.engels = { opdracht: n => (OPDR[n] ? OPDR[n].en : n), hoed: n => enWoord('hoed', n) };
