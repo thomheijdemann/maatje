@@ -34,6 +34,11 @@ say My friends copy everything I do.
 dance 4
 cheer
 
+say And I know more than 500 little dances and tricks!
+anim breakdance
+anim rockstar
+anim fire-breath
+
 fly 50% high
 title MAATJE
 wait 4

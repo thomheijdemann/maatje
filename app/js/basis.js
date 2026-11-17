@@ -5,12 +5,12 @@
    The code is written in Dutch (the names and the comments below); what the user sees is English. */
 const DONKER = '#141413';
 const M = window.M = {
-  versie: '1.2', gebruiker: 'you',
+  versie: '1.3', gebruiker: 'you',
   W: 1920, H: 1040, dpr: 1,
   schermen: [{ x: 0, y: 0, w: 1920, h: 1040 }],
   t: 0, figuren: [], hoofd: null, fx: [], delen: [], bal: null,
   muis: { x: -9999, y: -9999, vx: 0, vy: 0, t: -99, klok: 0 },
-  inst: { kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true },
+  inst: { kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '' },
   // meeleven met Claude: welke sessies zijn aan het werk (komt binnen via haak.js), zie brein.js
   werk: { sessies: {}, reactieTot: 0, vertrekNa: 0, spawnNa: 0, klaarKoel: 0, nodigKoel: 0 },
   proef: false, pauze: false, druk: true,
@@ -165,5 +165,5 @@ M.klank = function (naam, n) {
 M.bewaar = function () {
   if (M.proef || !window.maatjeApp) return;
   const i = M.inst;
-  window.maatjeApp.bewaar({ kleur: i.kleur, maat: i.maat, hoed: i.hoed, geluid: i.geluid, vrij: i.vrij, meeleven: i.meeleven });
+  window.maatjeApp.bewaar({ kleur: i.kleur, maat: i.maat, hoed: i.hoed, geluid: i.geluid, vrij: i.vrij, meeleven: i.meeleven, skin: i.skin || '' });
 };

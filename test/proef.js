@@ -2,8 +2,10 @@
 /* MAATJE - test without a window.  node test/proef.js [folder for pictures]   (or: npm test)
    Starts the real program with --proef (invisible, its own pipe "maatje-proef", does not touch your
    settings, a world of two screens side by side), moves time forward by hand and checks: every command,
-   the places, the mouse, following along with Claude, whether nothing is left on the canvas after
-   erasing, and ten minutes of wandering by himself. Writes pictures to look at. Exit code 1 on a failure.
+   the places, the mouse, following along with Claude, every single animation, your own animations (a GIF,
+   a picture, a text file), the app window, whether nothing is left on the canvas after erasing, and ten
+   minutes of wandering by himself. Writes pictures to look at. Exit code 1 on a failure.
+   To test the built program instead of the source:  set MAATJE_EXE=dist\Maatje-win32-x64\Maatje.exe
    Most commands in this test are the Dutch words on purpose: that checks that they still work. */
 const cp = require('child_process');
 const fs = require('fs');
@@ -22,18 +24,48 @@ const status = () => v({ wat: 'status' });
 const foto = (naam, opt) => v(Object.assign({ wat: 'foto', pad: path.join(UIT, naam + '.png'), kleur: '#262a31' }, opt || {}));
 const dichtbij = (a, b, m) => Math.abs(a - b) <= (m === undefined ? 1 : m);
 
+/* the program under test: the source (Electron + the folder app), or the built Maatje.exe */
+const EXE = process.env.MAATJE_EXE ? path.resolve(process.env.MAATJE_EXE) : null;
+const programma = extra => (EXE ? [EXE, extra] : [zoekElectron(), [path.join(__dirname, '..', 'app')].concat(extra)]);
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'maatje-test-'));
+const APPINST = path.join(TMP, 'claude-settings-of-the-app.json');     // the app window may only ever connect to this file, never to your real settings
+const ENV = Object.assign({}, process.env, { MAATJE_SETTINGS: APPINST });
+
+/* a tiny GIF made right here: w x h pixels, every frame a list with a color 0-3 per pixel (0 = see-through) */
+function maakGif(w, h, beelden, honderdsten) {
+  const delen = [Buffer.from('GIF89a', 'latin1'), Buffer.from([w & 255, w >> 8, h & 255, h >> 8, 0x91, 0, 0]), Buffer.from([0, 0, 0, 217, 119, 87, 106, 155, 204, 255, 255, 255])];
+  for (const px of beelden) {
+    delen.push(Buffer.from([0x21, 0xf9, 4, 0x09, honderdsten & 255, honderdsten >> 8, 0, 0, 0x2c, 0, 0, 0, 0, w & 255, w >> 8, h & 255, h >> 8, 0, 2]));
+    const codes = [];
+    for (let i = 0; i < px.length; i += 2) { codes.push(4, px[i]); if (i + 1 < px.length) codes.push(px[i + 1]); }      // 4 = start again, so every code stays 3 bits
+    codes.push(5);
+    const bytes = [];
+    let acc = 0, n = 0;
+    for (const c of codes) { acc |= c << n; n += 3; while (n >= 8) { bytes.push(acc & 255); acc >>= 8; n -= 8; } }
+    if (n) bytes.push(acc & 255);
+    for (let i = 0; i < bytes.length; i += 255) { const stuk = bytes.slice(i, i + 255); delen.push(Buffer.from([stuk.length].concat(stuk))); }
+    delen.push(Buffer.from([0]));
+  }
+  delen.push(Buffer.from([0x3b]));
+  return Buffer.concat(delen);
+}
+
 async function hoofd() {
   fs.mkdirSync(UIT, { recursive: true });
   if (await leeft(PIJP)) { await v({ wat: 'afsluiten' }).catch(() => {}); await slaap(800); }
-  const kind = cp.spawn(zoekElectron(), [path.join(__dirname, '..', 'app'), '--proef', '--wereld=3840x1040x2'], { stdio: 'ignore' });
+  const [exe, args] = programma(['--proef', '--wereld=3840x1040x2']);
+  console.log('Testing ' + (EXE ? 'the built program ' + EXE : 'the source') + '\n');
+  const kind = cp.spawn(exe, args, { stdio: 'ignore', env: ENV });
   let op = false;
   for (let i = 0; i < 80 && !op; i++) { await slaap(250); op = await leeft(PIJP); }
   if (!op) { console.log('The test version does not start.'); kind.kill(); return 1; }
   try { await proeven(); }
   catch (e) { test('the test ran all the way through', false, e.message); }
+  await v({ wat: 'eigen-leeg' }).catch(() => {});
   await v({ wat: 'afsluiten' }).catch(() => {});
   await slaap(300);
   try { kind.kill(); } catch (e) { /* already gone */ }
+  try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) { /* not important */ }
   const fout = uitslag.filter(u => !u.goed).length;
   console.log('\n' + uitslag.length + ' checks, ' + fout + ' failed. Pictures in ' + UIT);
   return fout ? 1 : 0;
@@ -375,6 +407,193 @@ async function proeven() {
   r = cli('connect');
   test('connect: a broken settings file is not touched', r.status !== 0 && fs.readFileSync(instPad, 'utf8') === '{ broken', { code: r.status, uit: r.stdout });
   fs.rmSync(tmp, { recursive: true, force: true });
+
+  // ---- the animations: every single one ----
+  await doe('stop', 'cleanup', 'roam off', 'run s1:middle'); await stap(8);
+  let an = await v({ wat: 'anims' });
+  const namen = an.lijst.map(a => a.naam);
+  test('animations: at least 500, every line can be read, all names different', an.lijst.length >= 500 && an.fouten.length === 0 && new Set(namen).size === namen.length, { aantal: an.lijst.length, fouten: an.fouten.slice(0, 5) });
+  test('animations: sorted into at least 10 kinds', an.soorten.length >= 10 && an.soorten.includes('dance') && an.soorten.includes('idle'), an.soorten);
+  const stuk = [], vies = [], scheef = [];
+  let gespeeld = 0;
+  for (const a of an.lijst) {
+    if (gespeeld % 40 === 0) { await doe('stop', 'run s1:middle'); await stap(7, 1 / 30); }
+    const voor = (await status()).foutTel;
+    u = await doe('anim ' + a.naam);
+    if (!u.ok) { stuk.push(a.naam + ': ' + JSON.stringify(u.fouten)); continue; }
+    await stap(a.duur + 0.5, 1 / 30);
+    s = await status();
+    if (s.foutTel !== voor) stuk.push(a.naam + ': ' + s.fouten.slice(-1));
+    const h = s.hoofd, q = s.animaties;
+    if (s.bezig || h.y !== VL || h.rol !== 0 || q.rol !== 0 || q.dy !== 0 || q.prop || h.waar !== 'vloer' || h.x < MAR || h.x > W - MAR) scheef.push(a.naam + ' ' + JSON.stringify({ bezig: s.bezig, x: h.x, y: h.y, rol: h.rol, q }));
+    if (++gespeeld % 20 === 0) { const sc = await v({ wat: 'schoon' }); if (sc.vuil) vies.push(a.naam + ' ' + sc.vuil + ' pixels at ' + JSON.stringify(sc.eerste)); }
+  }
+  test('animations: all ' + gespeeld + ' play without an error in the program', gespeeld === an.lijst.length && !stuk.length, stuk.slice(0, 8));
+  test('animations: afterwards he always stands on the floor again, upright, with empty hands', !scheef.length, scheef.slice(0, 8));
+  test('animations: nothing is left on the canvas', !vies.length, vies.slice(0, 8));
+  await doe('stop', 'run s1:middle'); await stap(7);
+  u = await doe('anim victory-danse');
+  test('anim: a typo gives a suggestion', !u.ok && /did you mean victory-dance/.test(u.fouten[0].tekst), u);
+  u = await doe('anim random nothing');
+  test('anim random: an unknown kind lists the kinds', !u.ok && /dance/.test(u.fouten[0].tekst), u);
+  u = await doe('anim random dance'); await stap(0.3); s = await status();
+  test('anim random dance: he plays one', u.ok && s.hoofd.doet === 'animatie' && s.hoofd.doetEn === 'anim', s.hoofd);
+  await doe('stop'); await stap(0.5);
+  const vd = an.lijst.find(a => a.naam === 'victory-dance');
+  await doe('animatie victory-dance 3'); await stap(vd.duur * 2 + 0.4); s = await status();
+  const nogBezig = s.hoofd.doet === 'animatie';
+  await stap(vd.duur + 0.4); s = await status();
+  test('anim <name> 3 (also with the Dutch word): three times in a row', nogBezig && !s.bezig, { nogBezig, bezig: s.bezig });
+  await doe('anim weightlifting'); await stap(1.2); s = await status();
+  test('an animation with a thing: he holds it while it plays', s.animaties.prop === 'barbell', s.animaties);
+  await foto('anim-weightlifting', { rond: true });
+  await stap(4); s = await status();
+  test('and the thing is gone afterwards', !s.animaties.prop && !s.bezig, s.animaties);
+  nr = 0;
+  for (const [naam, sec] of [['victory-dance', 2.2], ['moonwalk', 0.6], ['hula', 1.5], ['sword-kata', 0.5], ['handstand', 1], ['ghost', 1.2], ['birthday', 2.6], ['reading-docs', 1.5], ['frog', 0.75], ['sneeze', 1.2]]) {
+    await doe('stop', 'run s1:middle', 'anim ' + naam); await stap(sec, 1 / 60);
+    await foto('anim-' + String(nr++).padStart(2, '0') + '-' + naam, { gebied: { x: 760, y: 780, w: 400, h: 260 } });
+    await stap(6);
+  }
+  await doe('clone 2', 'wait 1', 'anim victory-dance', 'anim random'); await stap(12); s = await status();
+  test('friends copy an animation without errors', s.figuren === 3 && s.foutTel === 0, s.fouten);
+  await doe('cleanup'); await stap(1);
+
+  // ---- your own animations: a GIF, a picture, a text file ----
+  const { png, poppetje } = require('../tools/build-exe.js');
+  const leg = (naam, inhoud) => { const p = path.join(TMP, naam); fs.writeFileSync(p, inhoud); return p; };
+  const erbij = async (naam, inhoud) => { const r2 = await v({ wat: 'eigen-erbij', bestand: leg(naam, inhoud) }); await v({ wat: 'eigen' }); return r2; };
+  const kader = Array.from({ length: 120 }, (x, i) => (i % 12 === 0 || i % 12 === 11 || i < 12 || i >= 108 ? 1 : 2));
+  const kruis = Array.from({ length: 120 }, (x, i) => (i % 12 === Math.floor(i / 12) || i % 12 === 9 - Math.floor(i / 12) ? 3 : 0));
+  const gif = maakGif(12, 10, [kader, kruis], 20);
+  await v({ wat: 'eigen-leeg' });
+  u = await erbij('My Cool GIF!.gif', gif);
+  test('own: a GIF is taken and gets a tidy name', u.ok && u.naam === 'my-cool-gif' && u.ext === 'gif', u);
+  an = await v({ wat: 'anims' });
+  let eg = an.lijst.find(a => a.naam === 'my-cool-gif');
+  test('own: the GIF is an animation of the kind "mine", with both frames and the right speed', !!eg && eg.eigen && eg.cat === 'mine' && eg.soort === 'beeld' && eg.beelden === 2 && dichtbij(eg.duur, 0.4, 0.02) && an.soorten.includes('mine'), eg);
+  await doe('anim my-cool-gif 4'); await stap(0.3); s = await status();
+  test('own: while it plays he IS the GIF', s.animaties.beeld === 'my-cool-gif' && s.hoofd.doet === 'animatie', s.animaties);
+  await foto('own-gif', { gebied: { x: 760, y: 780, w: 400, h: 260 } });
+  await stap(3); s = await status();
+  test('own: afterwards he is himself again', !s.animaties.beeld && !s.bezig, s.animaties);
+  u = await erbij('pet.png', png(poppetje(32), 32));
+  an = await v({ wat: 'anims' }); eg = an.lijst.find(a => a.naam === 'pet');
+  test('own: a picture is one frame that stays for two seconds', u.ok && !!eg && eg.soort === 'beeld' && eg.beelden === 1 && eg.duur === 2, eg);
+  u = await erbij('spin-jump.txt', '# my own moves\njump&spin !stars\nprop:flag wave\n');
+  an = await v({ wat: 'anims' }); eg = an.lijst.find(a => a.naam === 'spin-jump');
+  test('own: a text file with moves becomes an animation', u.ok && !!eg && eg.soort === 'moves' && eg.eigen && eg.duur > 1, eg);
+  await doe('anim spin-jump'); await stap(1); s = await status();
+  test('own: and it plays (he holds the flag)', s.animaties.prop === 'flag', s.animaties);
+  await stap(3);
+  u = await erbij('oops.txt', 'hop flyaway spin');
+  an = await v({ wat: 'anims' });
+  test('own: a text file with a wrong word is reported, the rest keeps working', u.ok && !an.lijst.some(a => a.naam === 'oops') && an.eigenFouten.some(t => /oops\.txt: .*flyaway/.test(t)) && an.lijst.some(a => a.naam === 'pet'), an.eigenFouten);
+  u = await erbij('not-a-picture.gif', 'this is just text');
+  an = await v({ wat: 'anims' });
+  test('own: a broken picture is reported in plain words', an.eigenFouten.some(t => /not-a-picture\.gif: I cannot read this as a picture/.test(t)), an.eigenFouten);
+  u = await v({ wat: 'eigen-erbij', bestand: leg('virus.exe', 'MZ') });
+  test('own: other kinds of files are refused', !u.ok && /gif/.test(u.fout), u);
+  u = await v({ wat: 'eigen-erbij', bestand: leg('empty.gif', '') });
+  const u2 = await v({ wat: 'eigen-erbij', bestand: leg('huge.gif', Buffer.alloc(8 * 1024 * 1024 + 1, 1)) });
+  test('own: an empty file and a file over 8 MB are refused', !u.ok && !u2.ok && /8 MB/.test(u2.fout), { u, u2 });
+  u = await erbij('victory-dance.txt', 'hop*2');
+  an = await v({ wat: 'anims' });
+  test('own: the same name as a built-in one gets "-mine" behind it, the built-in one stays', an.lijst.some(a => a.naam === 'victory-dance-mine' && a.eigen) && an.lijst.some(a => a.naam === 'victory-dance' && !a.eigen), an.lijst.filter(a => /victory-dance/.test(a.naam)));
+  u = await erbij('my-cool-gif.png', png(poppetje(16), 16));
+  an = await v({ wat: 'anims' }); eg = an.lijst.find(a => a.naam === 'my-cool-gif');
+  test('own: the same name again replaces the old one', an.lijst.filter(a => a.naam === 'my-cool-gif').length === 1 && eg.beelden === 1, eg);
+  u = await doe('skin victory-dance');
+  test('skin: only one of your own pictures can be his look', !u.ok && /pet/.test(u.fouten[0].tekst), u);
+  await doe('skin pet', 'walk +200'); await stap(0.8); s = await status();
+  test('skin: he looks like your picture all the time, also while he walks', s.animaties.skin === 'pet' && s.animaties.beeld === 'pet' && s.hoofd.doet === 'loop', s.animaties);
+  await foto('own-skin', { rond: true });
+  await stap(5);
+  await v({ wat: 'eigen-weg', naam: 'pet' }); await v({ wat: 'eigen' }); s = await status(); an = await v({ wat: 'anims' });
+  test('own: deleting the picture he looks like makes him himself again', !an.lijst.some(a => a.naam === 'pet') && !s.animaties.skin, s.animaties);
+  await erbij('pet.png', png(poppetje(32), 32));
+  await doe('skin pet'); await stap(0.5); await doe('skin off'); await stap(0.5); s = await status();
+  test('skin off: himself again', !s.animaties.skin && !s.animaties.beeld, s.animaties);
+  u = await v({ wat: 'schoon' });
+  test('own: the canvas stays clean', u.vuil === 0 && (await status()).foutTel === 0, u);
+
+  // ---- the app window ----
+  const pj = async js => { const r2 = await v({ wat: 'paneel-js', js }, 180000); if (!r2.ok) throw new Error('the window: ' + r2.fout); return r2.uit; };
+  let p = await pj('P.wacht().then(() => P.staat())');
+  for (let i = 0; i < 60 && p.plaatjesTeGaan; i++) { await slaap(250); p = await pj('P.staat()'); }
+  an = await v({ wat: 'anims' });
+  test('window: lists every animation, also your own, and the kinds', p.animaties === an.lijst.length && p.kaarten === p.animaties && p.chips.includes('mine') && p.chips.includes('dance') && p.eigen.length === an.lijst.filter(a => a.eigen).length, { p: p.animaties, d: an.lijst.length, chips: p.chips });
+  const getekend = await pj("['victory-dance', 'moonwalk', 'weightlifting', 'frog', 'my-cool-gif', 'spin-jump'].map(n => P.plaatje(n))");
+  test('window: every card has a little picture of the animation', p.plaatjesTeGaan === 0 && getekend.every(n => n > 150), getekend);
+  const nDans = an.lijst.filter(a => a.cat === 'dance').length;
+  u = await pj("[P.zoek('dance'), P.zoek('zzzz'), P.zoek(''), P.soort('dance'), P.soort('all')]");
+  test('window: searching and choosing a kind', u[0] >= nDans && u[0] < p.kaarten && u[1] === 0 && u[2] === p.kaarten && u[3] === nDans && u[4] === p.kaarten, u);
+  u = await pj("P.kies('victory-dance') && P.stap(0.6) && P.staat()");
+  test('window: clicking a card shows it on the stage', u.keuze === 'victory-dance' && u.naam === 'victory-dance' && u.podium.doet === 'animatie' && /dance/.test(u.meta), u.podium);
+  u = await pj('P.stap(' + (vd.duur + 1.3) + ') && P.staat().podium');
+  test('window: the stage plays it again and again', u.doet === 'animatie', u);
+  await pj('P.speelOpBureau()'); await stap(0.4); s = await status();
+  u = await pj('P.staat().uit');
+  test('window: "Play on the desktop" makes the real one do it', s.hoofd.doet === 'animatie' && /desktop/.test(u), { doet: s.hoofd.doet, u });
+  await stap(vd.duur + 1);
+  await foto('window-animations-desktop', { rond: true });
+  await v({ wat: 'paneel-foto', pad: path.join(UIT, 'window-1-animations.png') });
+  u = await pj("P.tab('eigen'), document.getElementById('m-naam').value = 'Test Dance!', document.getElementById('m-tekst').value = 'prop:flag hop*2 raise !confetti spin', P.probeer() && P.stap(1.3) && P.staat()");
+  test('window: typed moves play on the stage straight away', u.proef && u.podium.prop === 'flag' && /That works/.test(u.typUit), { podium: u.podium, uit: u.typUit });
+  await v({ wat: 'paneel-foto', pad: path.join(UIT, 'window-2-my-own.png') });
+  u = await pj('P.bewaarTypvak().then(() => P.staat())');
+  await v({ wat: 'eigen' }); an = await v({ wat: 'anims' });
+  test('window: Save turns them into an animation of your own, on the desktop too', /Saved as "test-dance"/.test(u.typUit) && u.keuze === 'test-dance' && an.lijst.some(a => a.naam === 'test-dance' && a.eigen), u.typUit);
+  u = await pj("document.getElementById('m-tekst').value = 'hop zzzap', P.probeer(), P.staat().typUit");
+  test('window: a wrong word in typed moves is explained', /I do not know the move "zzzap"/.test(u), u);
+  u = await pj('P.voegToe([new File([new Uint8Array(' + JSON.stringify([...gif]) + ")], 'From The Window.gif', { type: 'image/gif' }), new File(['x'], 'nope.pdf')]).then(r => ({ r, s: P.staat() }))");
+  test('window: adding a file works, a wrong file is refused with a reason', u.r.goed[0] === 'from-the-window' && u.r.fout.some(t => /nope\.pdf/.test(t)) && u.s.keuze === 'from-the-window' && u.s.rijen.some(t => /from-the-window/.test(t)) && /Added: from-the-window/.test(u.s.eigenUit), u.r);
+  await pj("maatjePaneel.eigenWeg('from-the-window').then(() => new Promise(r => setTimeout(r, 400))).then(() => P.wacht())");
+  u = await pj('P.staat()');
+  test('window: Delete takes it out of the list again', !u.rijen.some(t => /from-the-window/.test(t)) && !u.eigen.some(e => e.naam === 'from-the-window') && u.kaarten === u.animaties, u.rijen);
+  u = await pj("maatjePaneel.koppel(true).then(k => P.ververs().then(() => ({ k, s: P.staat().gekoppeld })))");
+  let aj = {};
+  try { aj = JSON.parse(fs.readFileSync(APPINST, 'utf8')); } catch (e) { /* checked below */ }
+  const haken = Object.keys(aj.hooks || {}).map(ev => aj.hooks[ev][0].hooks[0]);
+  const goedeHaak = h => (EXE ? /Maatje\.exe$/i.test(h.command) && h.args[0] === '--hook' : h.command === 'node' && /\/hook\.js$/.test(h.args[0]));
+  test('window: Connect writes the 8 hooks (to a test file here): ' + (EXE ? 'the program itself with --hook' : 'node hook.js'), u.k.ok && u.s === true && haken.length === 8 && haken.every(goedeHaak), { u, haak: haken[0] });
+  u = await pj("maatjePaneel.koppel(false).then(k => P.ververs().then(() => ({ k, s: P.staat().gekoppeld })))");
+  try { aj = JSON.parse(fs.readFileSync(APPINST, 'utf8')); } catch (e) { aj = { hooks: 'unreadable' }; }
+  test('window: Disconnect takes them out again', u.k.ok && u.s === false && !aj.hooks, aj);
+  await pj("P.tab('inst'), 1");
+  await v({ wat: 'paneel-foto', pad: path.join(UIT, 'window-3-settings.png') });
+  u = await pj("P.tab('anims'), P.staat()");
+  test('window: not a single error in the window', u.fouten.length === 0, u.fouten);
+
+  // ---- the program itself: as a hook, and started a second time ----
+  await doe('stop', 'follow on', 'run s1:middle'); await stap(13.5);
+  let [px, pa] = programma(['--hook']);
+  r = cp.spawnSync(px, pa, { input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: 'exe1', prompt: 'never passed on' }), env: Object.assign({}, process.env, { MAATJE_PIJP: 'maatje-proef' }), encoding: 'utf8', timeout: 20000 });
+  await stap(1.5); s = await status();
+  test('the program as a hook (--hook): passes the event on, says nothing, ends well', r.status === 0 && !r.stdout.trim() && s.meeleven.typt, { code: r.status, uit: r.stdout, fout: (r.stderr || '').slice(0, 200), m: s.meeleven });
+  r = cp.spawnSync(px, pa, { input: JSON.stringify({ hook_event_name: 'Stop', session_id: 'exe1' }), env: Object.assign({}, process.env, { MAATJE_PIJP: 'maatje-proef' }), encoding: 'utf8', timeout: 20000 });
+  await stap(6);
+  [px, pa] = programma(['--proef', '--do=say Second start; jump']);
+  r = cp.spawnSync(px, pa, { env: ENV, encoding: 'utf8', timeout: 20000 });
+  await slaap(600); await stap(0.4); s = await status();
+  test('starting it a second time with --do= hands the commands to the one that is running', r.status === 0 && s.hoofd.zegt === 'Second start', { code: r.status, zegt: s.hoofd.zegt });
+  await stap(6); await doe('stop');
+
+  // ---- the shows in the folder "shows" ----
+  const showFouten = [];
+  for (const b of fs.readdirSync(path.join(__dirname, '..', 'shows')).filter(n => /\.txt$/.test(n))) {
+    u = await doe(...fs.readFileSync(path.join(__dirname, '..', 'shows', b), 'utf8').replace(/^﻿/, '').split(/\r?\n/));
+    if (!u.ok) showFouten.push(b + ': ' + JSON.stringify(u.fouten));
+    await doe('stop', 'cleanup', 'land', 'roam off', 'rainbow off', 'hat none'); await stap(3);
+  }
+  test('every show in the folder "shows" is written without mistakes', !showFouten.length, showFouten);
+
+  // ---- the list of animations on the command line ----
+  r = cli('--proef', 'anims');
+  test('maatje.js anims: the whole list, per kind', r.status === 0 && /ANIMATIONS/.test(r.stdout) && /DANCE \(\d+\)/.test(r.stdout) && /victory-dance/.test(r.stdout) && /MINE \(\d+\)/.test(r.stdout), r.stdout.slice(0, 200));
+  r = cli('--proef', 'anims', 'frog');
+  test('maatje.js anims frog: searching', r.status === 0 && /frog-jumps/.test(r.stdout) && !/victory-dance/.test(r.stdout), r.stdout.slice(0, 200));
+  await v({ wat: 'eigen-leeg' }); await v({ wat: 'eigen' });
 
   // ---- ten minutes by himself ----
   await doe('stop', 'roam on');

@@ -1,16 +1,19 @@
 {
   "name": "maatje",
-  "version": "1.2.0",
-  "description": "A little pixel pet that walks across your desktop and that Claude can control (unofficial fan project)",
+  "version": "1.3.0",
+  "description": "A little pixel pet that walks across your desktop, with 500+ animations, and that Claude can control (unofficial fan project)",
   "private": true,
   "license": "MIT",
   "scripts": {
     "start": "node maatje.js start",
     "stop": "node maatje.js quit",
+    "open": "node maatje.js open",
     "show": "node maatje.js show",
-    "test": "node test/proef.js"
+    "test": "node test/proef.js",
+    "build": "node tools/build-exe.js"
   },
   "devDependencies": {
-    "electron": "33.4.11"
+    "electron": "33.4.11",
+    "resedit": "1.7.2"
   }
 }

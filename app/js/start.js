@@ -3,6 +3,7 @@
    The code below is in Dutch. */
 (function () {
   const app = window.maatjeApp;
+  const eigenApi = app && app.eigenLijst ? { lijst: app.eigenLijst, lees: app.eigenLees } : null;      // eigen animaties: het hoofdprogramma bewaart ze
   let vorige = 0, teller = 0, fpsT = 0, fpsN = 0;
 
   function isDruk() {                                 // gebeurt er iets? anders tekenen we maar af en toe
@@ -74,6 +75,7 @@
       figuren: M.figuren.length, effecten: M.fx.length, deeltjes: M.delen.length,
       bal: M.bal ? { x: Math.round(M.bal.x), y: Math.round(M.bal.y), vx: Math.round(M.bal.vx) } : null,
       vrij: M.inst.vrij, geluid: M.inst.geluid, muisVast: M.muisVast, fps: M.fps,
+      animaties: { aantal: M.anim.lijst.length, eigen: M.anim.lijst.filter(a => a.eigen).length, fouten: M.anim.fouten.length, skin: f.skin ? f.skin.naam : null, beeld: f.beeld ? f.beeld.naam : null, prop: f.prop ? f.prop.naam : null, dy: +f.pose.dy.toFixed(2), rol: +f.animRol.toFixed(2) },
       meeleven: { aan: M.inst.meeleven, sessies: Object.keys(M.werk.sessies).length, werkt: M.werkActief(), hulpjes: M.figuren.filter(k => k.hulpje).length, typt: !!f.nu && f.nuNaam === 'werk' },
       fouten: M.fouten.slice(-6), foutTel: M.foutTel, klanken: M.proef ? G.tel : undefined,
     };
@@ -103,6 +105,8 @@
       case 'foto': return M.foto(b);
       case 'zicht': M.zetZicht(!!b.aan, false); return { ok: true };
       case 'meeleven': return M.meeleef(b);
+      case 'anims': return { ok: true, lijst: M.animLijst(), soorten: M.anim.cats, fouten: M.anim.fouten, eigenFouten: M.anim.eigenFouten };
+      case 'eigen': return eigenApi ? M.laadEigen(eigenApi) : { ok: false, fout: 'not available here' };
     }
     if (!M.proef) return { ok: false, fout: 'unknown request: ' + b.wat };
     switch (b.wat) {                                  // alleen in een proef: de tijd met de hand vooruitzetten, de muis nadoen
@@ -159,6 +163,7 @@
       vorige = performance.now();
       requestAnimationFrame(beeld);
     } else M.teken();
+    if (eigenApi) { M.laadEigen(eigenApi).catch(e => M.meldFout('eigen animaties', e)); app.opEigen(() => { M.laadEigen(eigenApi).catch(e => M.meldFout('eigen animaties', e)); }); }
     app.klaar();
   });
 })();

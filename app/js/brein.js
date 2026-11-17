@@ -41,11 +41,13 @@ M.muisOp = function () {
   M.pauzeNa = 3;
   M.muisToets(false);
 };
-window.addEventListener('mousemove', e => M.muisBeweeg(e.clientX, e.clientY));
-window.addEventListener('mousedown', e => { if (e.button === 0) M.muisNeer(); });
-window.addEventListener('mouseup', e => { if (e.button === 0) M.muisOp(); });
-document.addEventListener('mouseleave', () => { if (M.gepakt) M.muisOp(); });
-window.addEventListener('contextmenu', e => e.preventDefault());
+if (window.maatjeApp) {                               // alleen op het bureaublad; in het app-venster (het podium) doet de muis niets met hem
+  window.addEventListener('mousemove', e => M.muisBeweeg(e.clientX, e.clientY));
+  window.addEventListener('mousedown', e => { if (e.button === 0) M.muisNeer(); });
+  window.addEventListener('mouseup', e => { if (e.button === 0) M.muisOp(); });
+  document.addEventListener('mouseleave', () => { if (M.gepakt) M.muisOp(); });
+  window.addEventListener('contextmenu', e => e.preventDefault());
+}
 
 /* ---- meeleven met Claude ----
    Claude Code roept bij elke gebeurtenis haak.js aan; dat stuurt hier een van deze berichten heen:
@@ -164,5 +166,6 @@ M.brein = function (dt) {
   else if (r < 0.85) M.zelf(['draai']);
   else if (r < 0.90 && M.t - M.muis.t < 3) M.zelf(['ren muis', 'kijk muis', 'emotie vraag']);
   else if (r < 0.93) M.zelf(['emotie muziek', 'dans 2']);
+  else if (r < 0.98 && M.anim.cats.includes('idle')) M.zelf(['anim random idle']);      // een klein dingetje uit de 500 animaties
   else M.zelf(['wacht 2']);
 };

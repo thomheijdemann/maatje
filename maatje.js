@@ -10,6 +10,8 @@
    node maatje.js play <file>           a whole story from a text file (one command per line)
    node maatje.js show                  the show from shows/show.txt
    node maatje.js photo <file.png>      a picture of what he is drawing right now (--around = only around him)
+   node maatje.js anims [word]          the list of all animations (anims dance = one kind, anims jump = search)
+   node maatje.js open                  open the Maatje window (all animations, your own animations, settings)
    node maatje.js connect               let Maatje follow along with Claude Code (adds hooks to ~/.claude/settings.json)
    node maatje.js disconnect            removes those hooks again
 
@@ -23,9 +25,14 @@ const path = require('path');
 const cp = require('child_process');
 
 const HIER = __dirname;
+const { koppel } = require('./koppel.js');
+/* zit dit bestand in de verpakte app (Maatje.exe met de map resources/app ernaast)? dan is dat het programma */
+const EXE = path.join(HIER, '..', '..', 'Maatje.exe');
+const VERPAKT = !process.env.MAATJE_ELECTRON && path.basename(path.dirname(HIER)).toLowerCase() === 'resources' && fs.existsSync(EXE);
 
 /* Electron is het programma waar Maatje in draait. Het komt met "npm install" in de map node_modules. */
 function zoekElectron() {
+  if (VERPAKT) return EXE;
   const kandidaten = [
     process.env.MAATJE_ELECTRON,
     path.join(HIER, 'node_modules', 'electron', 'dist', 'electron.exe'),
@@ -55,48 +62,6 @@ function zoekElectron() {
   throw new Error('Electron is not here yet. In this folder, first type:  npm install');
 }
 
-/* ---- meeleven: de koppeling met Claude Code aan- of uitzetten ----
-   Claude Code kan bij elke gebeurtenis een scriptje starten ("hooks"). Wij zetten hook.js erin.
-   Wat er al in de instellingen stond blijft staan, en er wordt eerst een reservekopie gemaakt. */
-const HAAK_BIJ = { UserPromptSubmit: '', PreToolUse: '', PostToolUse: 'AskUserQuestion|ExitPlanMode', PermissionRequest: '', Notification: '', SubagentStop: '', Stop: '', SessionEnd: '' };
-function koppel(aan) {
-  const pad = process.env.MAATJE_SETTINGS || path.join(os.homedir(), '.claude', 'settings.json');
-  const glad = p => path.resolve(String(p)).replace(/\\/g, '/').toLowerCase();
-  const haak = path.join(HIER, 'hook.js'), eigen = [glad(haak), glad(path.join(HIER, 'haak.js'))];     // haak.js = de oude naam
-  let tekst = null, j = {};
-  try { tekst = fs.readFileSync(pad, 'utf8').replace(/^\uFEFF/, ''); } catch (e) { if (e.code !== 'ENOENT') throw new Error('I cannot open ' + pad + ': ' + e.message); }
-  if (tekst !== null && tekst.trim()) {
-    try { j = JSON.parse(tekst); } catch (e) { j = null; }
-    if (!j || typeof j !== 'object' || Array.isArray(j)) throw new Error('I cannot read ' + pad + ' (there is a mistake in it). I have not changed anything.');
-  }
-  const onze = h => !!h && h.type === 'command' && ((Array.isArray(h.args) && h.args.some(a => eigen.includes(glad(a)))) || (typeof h.command === 'string' && eigen.some(e => h.command.replace(/\\/g, '/').toLowerCase().includes(e))));
-  const hooks = j.hooks && typeof j.hooks === 'object' && !Array.isArray(j.hooks) ? j.hooks : {};
-  let weg = 0;
-  for (const ev of Object.keys(hooks)) {             // eerst onze oude regels eruit, zodat ze er nooit dubbel in komen
-    if (!Array.isArray(hooks[ev])) continue;
-    hooks[ev] = hooks[ev].map(g => {
-      if (!g || !Array.isArray(g.hooks)) return g;
-      const over = g.hooks.filter(h => { if (onze(h)) { weg++; return false; } return true; });
-      return over.length || !g.hooks.length ? Object.assign({}, g, { hooks: over }) : null;
-    }).filter(g => g !== null);
-    if (!hooks[ev].length) delete hooks[ev];
-  }
-  if (!aan && !weg) return 'Maatje was not connected to Claude Code. Nothing changed.';
-  if (aan) for (const ev in HAAK_BIJ) {
-    const g = { hooks: [{ type: 'command', command: 'node', args: [haak.replace(/\\/g, '/')], async: true, timeout: 5 }] };
-    if (HAAK_BIJ[ev]) g.matcher = HAAK_BIJ[ev];
-    (hooks[ev] = hooks[ev] || []).push(g);
-  }
-  if (Object.keys(hooks).length) j.hooks = hooks; else delete j.hooks;
-  fs.mkdirSync(path.dirname(pad), { recursive: true });
-  if (tekst !== null) fs.writeFileSync(pad + '.maatje-backup', tekst);
-  fs.writeFileSync(pad + '.new', JSON.stringify(j, null, 2) + '\n');
-  fs.renameSync(pad + '.new', pad);
-  return (aan ? 'Connected: Maatje now follows along with Claude Code.' : 'Disconnected: Maatje no longer follows along with Claude Code.') +
-    '\nChanged: ' + pad + (tekst !== null ? '\nBackup:  ' + pad + '.maatje-backup' : '') +
-    (aan ? '\nIf you ever move this folder, first type "node maatje.js disconnect" and then, in the new folder, "node maatje.js connect".' : '');
-}
-
 function vraag(b, pijp, maxMs) {
   return new Promise((goed, fout) => {
     const sock = net.connect(pijp);
@@ -119,13 +84,14 @@ async function leeft(pijp) { try { const u = await vraag({ wat: 'ping' }, pijp, 
 
 async function start(pijp) {
   if (await leeft(pijp)) return 'Maatje was already running.';
-  const exe = zoekElectron(), appMap = path.join(HIER, 'app');
-  const regel = '"' + exe + '" "' + appMap + '"';
+  // --geen-paneel: alleen het poppetje, niet meteen het venster van de app erbij (dat komt met: node maatje.js open)
+  const exe = zoekElectron(), delen = VERPAKT ? ['--geen-paneel'] : [path.join(HIER, 'app'), '--geen-paneel'];
+  const regel = '"' + exe + '" ' + delen.map(d => (d.startsWith('--') ? d : '"' + d + '"')).join(' ');
   try {                                               // via Windows zelf starten: dan blijft hij leven als dit venster dichtgaat
     cp.execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
       "$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '" + regel.replace(/'/g, "''") + "' }; if ($r.ReturnValue -ne 0) { exit 1 }"], { stdio: 'ignore', windowsHide: true });
   } catch (e) {
-    cp.spawn(exe, [appMap], { detached: true, stdio: 'ignore' }).unref();
+    cp.spawn(exe, delen, { detached: true, stdio: 'ignore' }).unref();
   }
   for (let i = 0; i < 80; i++) { await slaap(250); if (await leeft(pijp)) return 'Maatje has started.'; }
   throw new Error('Maatje does not start (waited 20 seconds).');
@@ -191,6 +157,19 @@ async function hoofd() {
   if (!PROEF && !(await leeft(pijp))) await start(pijp);
 
   if (wat === 'help' && args.length <= 1) { const u = await vraag({ wat: 'hulp' }, pijp); console.log(toonHulp(u.opdrachten)); return 0; }
+  if (wat === 'open' && args.length <= 1) { await vraag({ wat: 'paneel' }, pijp); console.log('The Maatje window is open.'); return 0; }
+  if (wat === 'anims' || wat === 'animations') {
+    const u = await vraag({ wat: 'anims' }, pijp), zoek = (args[1] || '').toLowerCase();
+    if (!u.ok) { console.log('Failed: ' + u.fout); return 1; }
+    const lijst = u.lijst.filter(a => !zoek || a.cat === zoek || a.naam.includes(zoek));
+    const per = {};
+    for (const a of lijst) (per[a.cat] = per[a.cat] || []).push(a.naam);
+    console.log(lijst.length + (zoek ? ' of the ' + u.lijst.length : '') + ' ANIMATIONS' + (zoek ? ' for "' + zoek + '"' : '') + '   (play one with: anim <name>, a surprise with: anim random [kind])');
+    for (const c in per) console.log('\n' + c.toUpperCase() + ' (' + per[c].length + ')\n  ' + per[c].join(', '));
+    if (!lijst.length) console.log('\nThe kinds are: ' + u.soorten.join(', '));
+    for (const f of u.fouten.concat(u.eigenFouten || [])) console.log('\nDoes not work: ' + f);
+    return 0;
+  }
   if (wat === 'photo') {
     if (!args[1]) { console.log('Like this: node maatje.js photo picture.png'); return 1; }
     const u = await vraag({ wat: 'foto', pad: path.resolve(args[1]), rond: ROND, kleur: DOOR ? null : '#262a31' }, pijp, 20000);

@@ -11,7 +11,6 @@
 const net = require('net');
 
 const klaar = () => process.exit(0);
-setTimeout(klaar, 1500);                              // nooit blijven hangen
 
 function gebeurtenis(h) {
   const ev = h.hook_event_name, tool = String(h.tool_name || '');
@@ -34,11 +33,7 @@ function gebeurtenis(h) {
   return null;
 }
 
-let invoer = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', d => { invoer += d; });
-process.stdin.on('error', klaar);
-process.stdin.on('end', () => {
+function stuur(invoer) {
   let h;
   try { h = JSON.parse(invoer); } catch (e) { return klaar(); }
   const g = gebeurtenis(h || {});
@@ -48,4 +43,15 @@ process.stdin.on('end', () => {
   sock.on('connect', () => sock.write(JSON.stringify({ wat: 'meeleven', gebeurtenis: g, sessie: String(h.session_id || '?'), tool: String(h.tool_name || '') }) + '\n'));
   sock.on('data', klaar);
   sock.on('close', klaar);
-});
+}
+/* tekst = de invoer als die al gelezen is (zo doet Maatje.exe --hook het); anders lezen we hem hier zelf */
+function begin(tekst) {
+  setTimeout(klaar, 1500);                            // nooit blijven hangen
+  if (typeof tekst === 'string') return stuur(tekst);
+  let invoer = '';
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', d => { invoer += d; });
+  process.stdin.on('error', klaar);
+  process.stdin.on('end', () => stuur(invoer));
+}
+if (require.main === module) begin(); else module.exports = begin;

@@ -44,7 +44,7 @@ const EMO = {
 };
 
 function tekenHoed(c, f, s, y0) {
-  const h = HOEDEN[f.hoed];
+  const h = HOEDEN[f.animHoed || f.hoed];
   if (!h) return;
   for (let j = 0; j < h.rij.length; j++) {
     const rij = h.rij[j];
@@ -67,7 +67,7 @@ function tekenHoed(c, f, s, y0) {
   }
 }
 function tekenOgen(c, f, s, y0) {
-  const h = HOEDEN[f.hoed];
+  const h = HOEDEN[f.animHoed || f.hoed];
   if (h && h.geenOgen) return;
   let def = OGEN[f.oogSoort()] || OGEN.normaal;
   if (def.wissel) def = (Math.floor(M.t / 0.14) & 1) ? OGEN.kruis : OGEN.plus;
@@ -84,7 +84,7 @@ function tekenSprite(c, f) {
   const s = f.maat, p = f.pose;
   const L = Math.round(p.lijf * s);
   const yb = -2 * s - L, y0 = yb - 8 * s;          // onderkant en bovenkant van het lijf
-  c.fillStyle = f.verkoold > 0 ? '#2e2c2a' : f.kleurNu;
+  c.fillStyle = f.verkoold > 0 ? '#2e2c2a' : (f.animKleur || f.kleurNu);
   for (let i = 0; i < 4; i++) {
     const len = p.poten[i];
     const onder = (!p.los && len >= 2) ? 0 : yb + Math.round(len * s);
@@ -96,6 +96,8 @@ function tekenSprite(c, f) {
   c.fillRect(5 * s, y0 + 4 * s + aR, 2 * s, 2 * s);
   tekenOgen(c, f, s, y0);
   tekenHoed(c, f, s, y0);
+  if (f.prop) tekenProp(c, f, s, y0, aL, aR);     // uit anim.js
+  if (f.ring) tekenRing(c, f, s);
   const k = f.kijk;
   if (f.ding === 'laptop') {
     c.fillStyle = '#c9ccd1'; c.fillRect(k > 0 ? 6 * s : -12 * s, -s, 6 * s, s);
@@ -125,7 +127,10 @@ class Figuur {
     this.kleur = o.kleur; this.kleurNu = o.kleur; this.kleurWissel = false;
     this.maat = o.maat; this.hoed = HOEDEN[o.hoed] ? o.hoed : 'geen';
     this.kijk = 1; this.fase = 0; this.vorigeStap = 0; this.liep = false;
-    this.pose = { lijf: 0, poten: [2, 2, 2, 2], los: false, armL: 0, armR: 0, schuin: 0, dx: 0 };
+    this.pose = { lijf: 0, poten: [2, 2, 2, 2], los: false, armL: 0, armR: 0, schuin: 0, dx: 0, dy: 0 };
+    // voor animaties (anim.js): een voorwerp in zijn hand, een touw of hoepel, een andere kleur, een plaatje in plaats van hemzelf
+    this.prop = null; this.ring = null; this.animKleur = null; this.animAlfa = 1; this.animHoed = null; this.animRol = 0;
+    this.beeld = null; this.beeldI = 0; this.skin = null; this.skinT = 0; this.skinI = 0;
     this.rekX = 1; this.rekY = 1; this.alfa = 1; this.zichtbaar = true; this.plet = 0;
     this.ogen = 'normaal'; this.ogenTot = 0; this.ogenVast = null; this.ogenNu = null;
     this.oogDx = 0; this.oogDy = 0; this.kijkVast = null; this.kijkTot = 0; this.kijkNaar = null;
@@ -143,7 +148,7 @@ class Figuur {
     return { x: this.x + lx * c - ly * si, y: this.y + lx * si + ly * c };
   }
   midden() { return this.lokaal(0, -5 * this.maat); }
-  kop() { const h = HOEDEN[this.hoed]; return this.lokaal(0, -(10 + (h && h.r < 0 ? -h.r : 0)) * this.maat - 2); }
+  kop() { const h = HOEDEN[this.animHoed || this.hoed]; return this.lokaal(0, -(10 + (h && h.r < 0 ? -h.r : 0)) * this.maat - 2); }
   oogPlek(kant) { return this.lokaal(kant * 2.5 * this.maat, -7.5 * this.maat); }
   raakt(mx, my) {
     const th = VLAKHOEK[this.vlak] + this.draai, c = Math.cos(th), si = Math.sin(th), dx = mx - this.x, dy = my - this.y, s = this.maat;
@@ -167,6 +172,7 @@ class Figuur {
     po[0] = po[1] = po[2] = po[3] = 2; p.los = false; p.armL = 0; p.armR = 0; p.schuin = 0; p.dx = 0;
     p.lijf = Math.sin(M.t * 2.1 + this.nr * 1.7) > 0.45 ? 1 / s : 0;             // ademen
     this.rekX = 1; this.rekY = 1; this.ogenNu = null; this.ding = null; this.kijkNaar = null; this.liep = false;
+    p.dy = 0; this.prop = null; this.ring = null; this.animKleur = null; this.animAlfa = 1; this.animHoed = null; this.animRol = 0; this.beeld = null;
     this.knipT -= dt; if (this.knipT < -0.13) this.knipT = 1.6 + M.rnd() * 4.2;
     const zit = this.houding ? 1 : 0;
     if (this.zitK !== zit) this.zitK = zit > this.zitK ? Math.min(1, this.zitK + dt * 6) : Math.max(0, this.zitK - dt * 7);
@@ -211,6 +217,13 @@ class Figuur {
       if (!this.nu && this.rij.length && (!this.lucht || this.rij[0].def.stil || this.rij[0].def.magInLucht)) this.begin(this.rij.shift());
       if (this.nu && this.nu.stap(dt)) this.nu = null;
       if (!this.nu && !this.rij.length && this.leider) this.volg(dt);
+    }
+    if (this.skin && !this.beeld) {                 // hij ziet eruit als een eigen plaatje of GIF
+      const A = this.skin;
+      this.skinT += dt;
+      if (this.skinI >= A.frames.length) this.skinI = 0;
+      while (this.skinT >= A.duur[this.skinI]) { this.skinT -= A.duur[this.skinI]; this.skinI = (this.skinI + 1) % A.frames.length; }
+      this.beeld = A; this.beeldI = this.skinI;
     }
     if (this.vliegt) {                              // vlammetjes onder zijn voeten
       for (let i = 0; i < 2; i++) M.deel({ x: this.x + (i ? 3.5 : -3.5) * s + (M.rnd() - 0.5) * s, y: this.y - s, vx: (M.rnd() - 0.5) * 40, vy: 180 + M.rnd() * 160, l: 0.2 + M.rnd() * 0.2, k: M.kies(['#ffd23f', '#ff8c2b', '#ff4d2d', '#ffffff']), m: Math.max(2, Math.round(s * (0.5 + M.rnd() * 0.5))) });
@@ -345,24 +358,32 @@ class Figuur {
     }
   }
 
+  /* hem tekenen op een doek naar keuze, met (x, y) tussen zijn voeten; geeft terug hoe groot het vak eromheen is */
+  tekenOp(c, x, y) {
+    const s = this.maat, th = VLAKHOEK[this.vlak] + this.draai, p = this.pose, rol = this.rol + this.animRol, al = this.alfa * this.animAlfa;
+    c.save();
+    c.translate(x, y);
+    if (th) c.rotate(th);
+    if (p.dy) c.translate(0, -Math.round(p.dy * s));                 // opgetild door een animatie (hop, zweven)
+    if (rol) { c.translate(0, -5 * s); c.rotate(rol); c.translate(0, 5 * s); }
+    if (p.schuin) c.rotate(p.schuin);
+    if (this.rekX !== 1 || this.rekY !== 1) c.scale(this.rekX, this.rekY);
+    if (al < 1) c.globalAlpha = al;
+    let R = 17 * s;
+    if (this.beeld) R = tekenBeeld(c, this); else tekenSprite(c, this);
+    c.restore();
+    return R;
+  }
   teken() {
     if (!this.zichtbaar) return;
-    const s = this.maat, c = ctx, th = VLAKHOEK[this.vlak] + this.draai;
-    c.save();
-    c.translate(Math.round(this.x + this.pose.dx), Math.round(this.y));
-    if (th) c.rotate(th);
-    if (this.rol) { c.translate(0, -5 * s); c.rotate(this.rol); c.translate(0, 5 * s); }
-    if (this.pose.schuin) c.rotate(this.pose.schuin);
-    if (this.rekX !== 1 || this.rekY !== 1) c.scale(this.rekX, this.rekY);
-    if (this.alfa < 1) c.globalAlpha = this.alfa;
-    tekenSprite(c, this);
-    c.restore();
-    const m = this.midden(), R = 17 * s * Math.max(1, Math.abs(this.rekX), this.rekY) + (this.ding ? 8 * s : 0) + Math.abs(this.pose.dx);
+    const s = this.maat, p = this.pose, m = this.midden();
+    let R = this.tekenOp(ctx, Math.round(this.x + p.dx), Math.round(this.y));
+    R = R * Math.max(1, Math.abs(this.rekX), this.rekY) + (this.ding || this.prop || this.ring ? 9 * s : 0) + Math.abs(p.dx) + Math.abs(p.dy) * s;
     M.merk(m.x - R, m.y - R, R * 2, R * 2);
   }
   tekenSchaduw() {
     if (!this.zichtbaar || this.vlak !== 0) return;
-    const s = this.maat, vl = M.vloer(this.x), h = vl - this.y;
+    const s = this.maat, vl = M.vloer(this.x), h = vl - this.y + this.pose.dy * s;
     if (h > 600) return;
     const k = klem(1 - h / 600, 0.3, 1), w = Math.round(11 * s * k * Math.abs(this.rekX)), hh = Math.max(2, Math.round(s * 0.5));
     ctx.globalAlpha = 0.2 * k * this.alfa; ctx.fillStyle = '#000000';

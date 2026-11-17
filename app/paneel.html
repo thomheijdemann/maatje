@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self'">
+<title>Maatje</title>
+<link rel="stylesheet" href="paneel.css">
+</head>
+<body>
+<header>
+  <canvas id="logo" width="56" height="40"></canvas>
+  <h1>MAATJE</h1>
+  <span id="versie"></span>
+  <span class="veer"></span>
+  <span id="waar" class="stip">on your desktop</span>
+  <button id="k-zicht" class="knop">Hide</button>
+  <button id="k-stop" class="knop gevaar" title="Shuts Maatje down completely">Quit Maatje</button>
+</header>
+<main>
+  <aside>
+    <div id="podium"><canvas id="doek"></canvas></div>
+    <div id="keuze">
+      <div id="k-naam">Pick an animation</div>
+      <div id="k-meta">Click one on the right to see it here.</div>
+      <div id="k-tekst"></div>
+    </div>
+    <div class="rij">
+      <button id="k-speel" class="knop hoofd" disabled>Play on the desktop</button>
+      <select id="k-keer" title="How many times">
+        <option value="1">1 time</option><option value="2">2 times</option><option value="3">3 times</option><option value="5">5 times</option>
+      </select>
+      <button id="k-gok" class="knop">Surprise me</button>
+    </div>
+    <div id="k-uit" class="melding"></div>
+    <div id="k-opdracht" class="tip"></div>
+  </aside>
+  <section>
+    <nav>
+      <button class="tab aan" data-tab="anims">Animations <b id="n-anims"></b></button>
+      <button class="tab" data-tab="eigen">My own <b id="n-eigen"></b></button>
+      <button class="tab" data-tab="inst">Settings</button>
+    </nav>
+
+    <div class="blad aan" id="blad-anims">
+      <div class="balk">
+        <input id="zoek" type="search" placeholder="Search: dance, jump, cat ..." spellcheck="false" autocomplete="off">
+        <span id="n-zicht" class="tip"></span>
+      </div>
+      <div id="chips"></div>
+      <div id="rooster"></div>
+      <div id="leeg" class="tip">Nothing found. Try another word.</div>
+    </div>
+
+    <div class="blad" id="blad-eigen">
+      <h2>Add your own</h2>
+      <div id="drop">
+        <div><b>Drop a GIF or a picture here</b> (GIF, PNG, WebP, JPG) and he turns into it.</div>
+        <div class="tip">A .txt file with a line of moves works too. At most 8 MB per file.</div>
+        <button id="k-kies" class="knop">Choose a file</button>
+        <input id="bestand" type="file" accept=".gif,.png,.apng,.webp,.jpg,.jpeg,.txt" multiple hidden>
+      </div>
+      <div id="e-uit" class="melding"></div>
+      <div id="e-lijst"></div>
+
+      <h2>Make one yourself</h2>
+      <p class="tip">Type small moves after each other and watch him do it on the left. Click a word below to add it.</p>
+      <div class="rij">
+        <input id="m-naam" type="text" maxlength="40" placeholder="name, for example my-dance" spellcheck="false" autocomplete="off">
+        <button id="m-probeer" class="knop">Try it</button>
+        <button id="m-bewaar" class="knop hoofd">Save</button>
+      </div>
+      <textarea id="m-tekst" rows="3" spellcheck="false" placeholder="hop*2 spin !stars wave"></textarea>
+      <div id="m-uit" class="melding"></div>
+      <div class="tip regels">
+        <code>hop*3</code> three times &nbsp; <code>hop:2</code> bigger &nbsp; <code>hop/0.2</code> in 0.2 seconds &nbsp; <code>jump&amp;spin</code> at the same time &nbsp;
+        <code>[ hop spin ]*2</code> a group, twice &nbsp; <code>tempo:2</code> twice as fast &nbsp; <code>go:200</code> walk 200 pixels (<code>go:-200</code> = to the left)
+      </div>
+      <div id="woorden"></div>
+    </div>
+
+    <div class="blad" id="blad-inst">
+      <h2>What he does</h2>
+      <label class="schakel"><input type="checkbox" id="t-vrij"><span>Wander around by himself</span></label>
+      <label class="schakel"><input type="checkbox" id="t-geluid"><span>Sound</span></label>
+      <label class="schakel"><input type="checkbox" id="t-meeleven"><span>Follow along with Claude Code <i>(types while Claude works, waves when Claude needs you, cheers when it is done)</i></span></label>
+      <div class="rij">
+        <span id="c-stand" class="stip uit">not connected to Claude Code</span>
+        <button id="k-koppel" class="knop">Connect</button>
+      </div>
+      <div id="c-uit" class="melding"></div>
+      <p class="tip">Connecting adds a few lines to the settings of Claude Code on this pc (a backup is made first). Disconnect takes them out again.</p>
+
+      <h2>What he looks like</h2>
+      <div id="kleuren" class="rij wrap"></div>
+      <div class="rij">
+        <span class="tip">Size</span>
+        <button class="knop maat" data-maat="klein">Small</button>
+        <button class="knop maat" data-maat="gewoon">Normal</button>
+        <button class="knop maat" data-maat="groot">Big</button>
+        <button class="knop maat" data-maat="reus">Giant</button>
+        <span class="tip">Hat</span>
+        <select id="hoed"></select>
+      </div>
+      <div id="skinregel" class="rij" hidden>
+        <span>He looks like <b id="skinnaam"></b> now.</span>
+        <button id="k-skinuit" class="knop">Back to himself</button>
+      </div>
+
+      <h2>Tell him what to do</h2>
+      <div class="rij">
+        <input id="o-tekst" type="text" placeholder="walk middle; say Hi!; jump" spellcheck="false" autocomplete="off">
+        <button id="o-doe" class="knop hoofd">Do it</button>
+      </div>
+      <div id="o-uit" class="melding"></div>
+      <div class="rij wrap">
+        <button id="k-show" class="knop">Play the show</button>
+        <button id="k-ruim" class="knop">Clean up</button>
+        <button id="k-hulp" class="knop">All commands</button>
+      </div>
+      <div id="hulp"></div>
+      <p class="tip" id="map"></p>
+    </div>
+  </section>
+</main>
+<script src="js/basis.js"></script>
+<script src="js/letters.js"></script>
+<script src="js/figuur.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/acties.js"></script>
+<script src="js/anim-data.js"></script>
+<script src="js/anim.js"></script>
+<script src="js/brein.js"></script>
+<script src="js/start.js"></script>
+<script src="js/paneel.js"></script>
+</body>
+</html>
