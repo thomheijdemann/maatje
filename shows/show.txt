@@ -1,0 +1,51 @@
+# De show van Maatje. Eén opdracht per regel. Alle opdrachten: maatje hulp
+# Zelf een show maken? Kopieer dit bestand, verander de regels en speel hem af met:  maatje speel <naam>
+
+stop
+opruimen
+vrij uit
+maat gewoon
+hoed geen
+ogen normaal
+loop s1:50%
+zwaai
+zeg Hoi {naam}! Ik ben Maatje.
+zeg Claude kan mij besturen. Kijk maar!
+ren 20%
+ren 80%
+spring hoog
+salto
+emotie ster
+zeg Nu met vuurwerk!
+vuurwerk 8
+juich
+wacht 2.5
+
+hoed bril
+zeg Even stoer doen...
+zwaard
+laser
+wacht 0.4
+hoed geen
+
+kloon 4
+wacht 1
+zeg Mijn vriendjes doen alles na.
+dans 4
+juich
+
+vlieg 50% hoog
+titel MAATJE
+wacht 4
+land
+opruimen
+
+zeg En nu een rondje over het plafond!
+regenboog aan
+rondje
+regenboog uit
+
+loop s1:50%
+zeg Pak me maar op met je muis. Tot zo!
+zwaai
+vrij aan

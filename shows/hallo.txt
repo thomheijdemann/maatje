@@ -1,0 +1,13 @@
+# Een klein voorbeeld om zelf mee te beginnen.
+# + ervoor = niet wachten: hij praat terwijl hij al loopt.
+
+loop midden
+zwaai
+zeg Hallo!
++zeg Ik ga even springen...
+loop +200
+herhaal 3
+spring
+einde
+emotie hart
+buig
