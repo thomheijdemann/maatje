@@ -88,6 +88,14 @@ M.meeleef = function (b) {
       W.vertrekNa = M.t + 2.4;
       if (M.t >= W.klaarKoel) { W.klaarKoel = M.t + 4; reageer(['+roep Done!', 'juich', 'emotie ster'], 3); }
       break;
+    case 'overname': {                               // Claude gebruikt jouw muis of toetsenbord (computer use): hij loopt mee
+      if (!s) s = W.sessies[id] = { t: M.t, hulpjes: 0, nodig: false };
+      s.t = M.t; s.nodig = false;
+      const O = W.overname;
+      if (M.t - O.t > 9) { O.begin = M.t; O.aangekondigd = false; O.volgNa = 0; }
+      O.t = M.t; O.tool = String(b.tool || '').replace(/^mcp__.*__/, '').replace(/^computer_/, '').replace(/[^a-z_]/g, '').slice(0, 30);      // alleen de naam van het gereedschap, bijvoorbeeld left_click
+      break;
+    }
     case 'einde':
       delete W.sessies[id];
       break;
@@ -96,6 +104,36 @@ M.meeleef = function (b) {
   }
   return { ok: true, meeleven: true, werkt: M.werkActief() };
 };
+/* ---- Claude neemt jouw pc over (computer use) ----
+   Elke keer dat Claude de muis of het toetsenbord gebruikt komt er een "overname" binnen: alleen de NAAM van het gereedschap (left_click,
+   type, screenshot ...), nooit waar of wat. Zolang dat gebeurt (en 9 s daarna) beweegt hij mee: naar de muis, op het ding waar de muis
+   boven staat (een knop, een tekstblok, een venster), een sprongetje bij een klik, en hij typt mee als Claude typt. */
+const OVERNAME_KLIK = /click|mouse_down|mouse_up|drag/, OVERNAME_TYP = /^(type|key|hold_key|write_clipboard)$/;
+M.overnameActief = function () { return !!M.inst.meeleven && M.t - M.werk.overname.t < 9; };
+M.overnameStap = function (f) {
+  const O = M.werk.overname;
+  if (f.gepakt || f.lucht || !f.zichtbaar || M.pauze || M.t < O.volgNa) return;
+  if ((f.nu || f.rij.length || f.bij.length) && !f.vrijBezig) return;      // een opdracht van jou gaat voor
+  const typt = M.t - O.t < 2.5 && OVERNAME_TYP.test(O.tool);
+  const doe = (regels, sec) => { if (f.nu || f.rij.length || f.bij.length) f.stopAlles(); f.vrijSlaap = false; M.zelf(regels); O.volgNa = M.t + sec; };
+  if (!O.aangekondigd) { O.aangekondigd = true; return doe(['kijk muis', '+zeg Claude has the wheel!', 'emotie uitroep'], 2.4); }
+  if (typt) { if (!(f.nu && f.nuNaam === 'werk')) doe(['werk'], 0.8); else O.volgNa = M.t + 0.4; return; }      // Claude typt: hij typt mee
+  if (f.nu && f.nuNaam === 'werk') f.stopAlles();
+  if (M.muis.x < -9000) return;
+  const mx = M.muis.x, my = M.muis.y;
+  let doel = null;
+  for (const p of M.plat.lijst) {                                       // het ding waar de muis boven staat: de bovenrand net boven (of op) de muis
+    if (!M.plat.staatOp(p, mx) || p.y > my + 6 || my - p.y > 260) continue;
+    if (!doel || p.y > doel.y) doel = p;
+  }
+  if (doel && f.gId !== doel.id) return doe(['bovenop #' + doel.id + ':' + Math.round(mx)], 1.6);
+  if (!doel && f.gId) return doe(['ren muis'], 1.2);
+  const ver = Math.abs(mx - f.x);
+  if (ver > 9 * f.maat) return doe([ver > 380 ? 'ren muis' : 'loop muis'], 0.7);
+  if (OVERNAME_KLIK.test(O.tool) && M.t - O.t < 1.3 && M.t >= O.prikNa) { O.prikNa = M.t + 1.8; return doe(['kijk muis', 'spring laag'], 0.9); }
+  if (M.t >= O.kijkNa) { O.kijkNa = M.t + 2.5; doe(['kijk muis'], 0.4); }
+};
+
 /* oude sessies vergeten, en net zoveel hulpjes op het scherm als Claude er heeft ingezet */
 M.werkBeheer = function () {
   const W = M.werk, f = M.hoofd;
@@ -133,6 +171,7 @@ M.brein = function (dt) {
 
   // Claude is aan het werk: gaan zitten typen. Een opdracht gaat voor; 12 s daarna pakt hij het werk weer op.
   M.werkBeheer();
+  if (M.overnameActief()) { M.overnameStap(f); M.vrijVanaf = M.t + M.pauzeNa; return; }      // Claude bestuurt jouw pc: meebewegen gaat voor typen
   if (M.werkActief()) {
     const bezet = !!(f.nu || f.rij.length || f.bij.length), metWerk = !!f.nu && f.nuNaam === 'werk';
     if (!metWerk && !f.lucht && !f.gepakt && M.t >= M.werk.reactieTot && M.t - M.laatsteOpdracht > 12 && (!bezet || f.vrijBezig)) {

@@ -125,10 +125,10 @@ function engelsStatus(s) {
       standingOnWindowOf: s.vensters ? s.vensters.staOp : null, look: s.uiterlijk ? { top: { geen: 'none', antenne: 'antennae', oren: 'ears', hoorns: 'horns', kuif: 'tuft' }[s.uiterlijk.stijl.top], pattern: { geen: 'none', buik: 'belly', strepen: 'stripes', stippen: 'spots' }[s.uiterlijk.stijl.vlek], cheeks: s.uiterlijk.stijl.wangen, color: s.uiterlijk.kleur } : null,
     },
     mind: s.geest ? { on: s.geest.aan, feeling: s.geest.stemming, energy: s.geest.energie, boredom: s.geest.verveling, wantsCompany: s.geest.gezelligheid, doing: s.geest.doel, because: s.geest.reden, likes: s.geest.voorkeur } : null,
-    windows: s.vensters ? { standOnWindows: s.vensters.aan, seen: s.vensters.vensters, platforms: s.vensters.platforms, standOnPageThings: s.vensters.elementenAan, pageThings: s.vensters.elementen } : null,
+    windows: s.vensters ? { standOnWindows: s.vensters.aan, seen: s.vensters.vensters, platforms: s.vensters.platforms, standOnPageThings: s.vensters.elementenAan, pageThings: s.vensters.elementen, hideInFullscreen: s.volscherm ? s.volscherm.aan : null, fullScreens: s.volscherm ? s.volscherm.volle.length : null, hiddenForFullscreen: s.volscherm ? s.volscherm.verborgen : null } : null,
     pets: s.figuren, effects: s.effecten, particles: s.deeltjes, ball: s.bal,
     roam: s.vrij, sound: s.geluid,
-    follow: { on: m.aan, sessions: m.sessies, claudeIsWorking: m.werkt, helpers: m.hulpjes, typing: m.typt },
+    follow: { on: m.aan, sessions: m.sessies, claudeIsWorking: m.werkt, helpers: m.hulpjes, typing: m.typt, claudeHasTheMouse: !!m.overname },
     mouseOnPet: s.muisVast, fps: s.fps, errors: s.fouten, errorCount: s.foutTel,
     window: s.venster, windowVisible: s.vensterZichtbaar, pid: s.pid,
   };

@@ -28,12 +28,15 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 const INSTPAD = path.join(app.getPath('userData'), 'instellingen.json');
 const EIGENMAP = path.join(app.getPath('userData'), 'animations');
 const STIJLEN = { top: ['geen', 'antenne', 'oren', 'hoorns', 'kuif'], vlek: ['geen', 'buik', 'strepen', 'stippen'] };
-const inst = { naam: 'Maatje', kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, stijl: { top: 'geen', vlek: 'geen', wangen: false }, elementen: false, geest: { aan: true, voorkeur: {}, gezien: {} }, schermen: 'alle' };
+const inst = { naam: 'Maatje', kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, volscherm: true, stijl: { top: 'geen', vlek: 'geen', wangen: false }, elementen: false, geest: { aan: true, voorkeur: {}, gezien: {} }, schermen: 'alle' };
 const goedeNaam = n => typeof n === 'string' && n.length >= 1 && n.length <= 20 && /^[A-Za-z0-9 .'-]+$/.test(n);
 const goedeGeest = g => !!g && typeof g === 'object' && typeof g.aan === 'boolean' && ['voorkeur', 'gezien'].every(k => g[k] && typeof g[k] === 'object' && Object.keys(g[k]).length <= 40 && Object.keys(g[k]).every(n => /^[a-z0-9._-]{1,40}$/.test(n) && typeof g[k][n] === 'number' && isFinite(g[k][n])));
 const goedeStijl = s => !!s && typeof s === 'object' && STIJLEN.top.includes(s.top) && STIJLEN.vlek.includes(s.vlek) && typeof s.wangen === 'boolean';
 let vinder = null, vinderEl = false, laatsteVensters = [], vinderFout = null;
 let win = null, paneel = null, tray = null, wereld = null, klaar = false, zichtbaar = true;
+const VOL = require('./volscherm.js');
+let volVerborgen = false;                                    // alle schermen zijn vol (een video of spel op volledig scherm): het venster van Maatje is even weg
+let volIds = new Set(), volTimer = null, laatsteDip = [];    // de schermen (hun nummer) die nu vol zijn, de wachttijd voor ze erbij komen, en de laatste lijst vensters
 
 function leesInst() {
   if (PROEF) return;
@@ -50,6 +53,7 @@ function leesInst() {
     if (goedeNaam(i.naam)) inst.naam = i.naam;
     if (goedeGeest(i.geest)) inst.geest = { aan: i.geest.aan, voorkeur: i.geest.voorkeur, gezien: i.geest.gezien };
     if (typeof i.vensters === 'boolean') inst.vensters = i.vensters;
+    if (typeof i.volscherm === 'boolean') inst.volscherm = i.volscherm;
     if (typeof i.elementen === 'boolean') inst.elementen = i.elementen;
     if (goedeStijl(i.stijl)) inst.stijl = { top: i.stijl.top, vlek: i.stijl.vlek, wangen: i.stijl.wangen };
   } catch (e) { /* nog geen instellingen: de standaard is goed */ }
@@ -65,6 +69,13 @@ function schrijfInst() {
 
 /* Hoe groot is de wereld? Alle schermen naast elkaar (zonder de taakbalk), zodat hij van het
    ene scherm naar het andere kan lopen. Schermen met een andere vergroting doen niet mee. */
+function wereldDisplays() {                                  // de schermen die bij zijn wereld horen (voor we de volle schermen eruit halen)
+  const prim = screen.getPrimaryDisplay();
+  let ds = screen.getAllDisplays().filter(d => d.scaleFactor === prim.scaleFactor);
+  if (inst.schermen === 'primair' || !ds.length) ds = [prim];
+  ds.sort((a, b) => a.workArea.x - b.workArea.x);
+  return ds;
+}
 function meetWereld() {
   if (PROEF) {
     const [W, H, n] = (optie('wereld') || '3840x1040x2').split('x').map(Number);
@@ -73,9 +84,9 @@ function meetWereld() {
     return { x: 0, y: 0, w: W, h: H, dpr: 1, eerste: 0, schermen: sch };
   }
   const prim = screen.getPrimaryDisplay();
-  let ds = screen.getAllDisplays().filter(d => d.scaleFactor === prim.scaleFactor);
-  if (inst.schermen === 'primair' || !ds.length) ds = [prim];
-  ds.sort((a, b) => a.workArea.x - b.workArea.x);
+  let ds = wereldDisplays();
+  const vrij = ds.filter(d => !volIds.has(d.id));             // een scherm met een video of spel op volledig scherm hoort er even niet bij
+  if (vrij.length && vrij.length < ds.length && VOL.past(vrij.map(d => d.workArea), ds.filter(d => volIds.has(d.id)).map(d => d.bounds))) ds = vrij;
   const x0 = Math.min(...ds.map(d => d.workArea.x)), y0 = Math.min(...ds.map(d => d.workArea.y));
   const x1 = Math.max(...ds.map(d => d.workArea.x + d.workArea.width)), y1 = Math.max(...ds.map(d => d.workArea.y + d.workArea.height));
   return {
@@ -106,8 +117,8 @@ function maakVenster() {
 /* ---- de vensters op het scherm: Maatje kan erop staan (zie vensters.js en app/js/platform.js) ---- */
 function zendVensters() { if (win && klaar && !win.isDestroyed()) win.webContents.send('vensters', laatsteVensters); }
 function zetVensters() {
-  const aan = inst.vensters && (!PROEF || ECHTVENSTERS);
-  if (!aan) { if (vinder) { vinder.stop(); vinder = null; } if (laatsteVensters.length) { laatsteVensters = []; zendVensters(); } return; }
+  const aan = (inst.vensters || inst.volscherm) && (!PROEF || ECHTVENSTERS);      // ook zonder "op vensters staan" moet hij weten of er iets op volledig scherm staat
+  if (!aan) { if (vinder) { vinder.stop(); vinder = null; } if (laatsteVensters.length) { laatsteVensters = []; zendVensters(); } laatsteDip = []; volBeslis(); return; }
   if (vinder && vinderEl === !!inst.elementen) return;
   if (vinder) { vinder.stop(); vinder = null; }                      // het kijken in webpagina's is aan- of uitgezet: opnieuw starten
   vinderEl = !!inst.elementen;
@@ -117,13 +128,18 @@ function zetVensters() {
     alleenPid: optie('elementen-pid') === null ? 0 : (parseInt(optie('elementen-pid'), 10) > 0 ? parseInt(optie('elementen-pid'), 10) : -1),      // (alleen voor de test; een ongeldig getal = in niets kijken)
     bijFout: t => { vinderFout = t; },
     bijLijst: ruw => {
-      const uit = [];
-      for (const w of ruw.slice(0, 60)) {
+      const alle = ruw.slice(0, 60).map(w => {
         let r = { x: w.x, y: w.y, width: w.w, height: w.h };
         try { r = screen.screenToDipRect(null, r); } catch (e) { /* dan blijven het echte beeldpunten */ }
+        return { w, r };
+      });
+      laatsteDip = alle.map(q => ({ x: q.r.x, y: q.r.y, w: q.r.width, h: q.r.height, f: q.w.f ? 1 : 0 }));
+      volBeslis();                                                    // staat er een video of spel op volledig scherm? (alle vensters, ook die buiten zijn wereld)
+      const uit = [];
+      for (const { w, r } of alle) {
         const x = r.x - wereld.x, y = r.y - wereld.y;
         if (x + r.width <= 0 || x >= wereld.w || y >= wereld.h) continue;
-        const o = { i: w.i, x, y, w: r.width, h: r.height, p: w.p, a: w.a ? 1 : 0 };
+        const o = { i: w.i, x, y, w: r.width, h: r.height, p: w.p, a: w.a ? 1 : 0, f: w.f ? 1 : 0 };
         if (vinderEl && Array.isArray(w.e)) {                           // de dingen in een webpagina: ook omrekenen (zelfde verhouding als het venster)
           const k = w.w ? r.width / w.w : 1;
           o.e = w.e.map(q => [Math.round(r.x + (q[0] - w.x) * k - wereld.x), Math.round(r.y + (q[1] - w.y) * k - wereld.y), Math.round(q[2] * k), Math.round(q[3] * k), q[4], q[5]]);
@@ -142,11 +158,42 @@ function herindeel() {
   if (klaar) win.webContents.send('wereld', wereld);
 }
 
+/* ---- een video of spel op volledig scherm: Maatje stapt uit de weg ----
+   Het zoekprogramma zet f:1 op een venster dat een heel scherm vult zonder titelbalk (zie vensters.cs). Zo'n scherm hoort even niet meer bij zijn
+   wereld: hij loopt dan alleen nog op de andere schermen, en zijn (doorzichtige) venster ligt niet over de video. Zijn alle schermen vol, of
+   zou wat overblijft om een vol scherm heen liggen, dan gaat hij helemaal weg tot het voorbij is. Hij gaat pas na 0,7 s weg (geen geflikker
+   als een venster even langs flitst) en komt meteen terug. Uit te zetten met "fullscreen off". */
+function volBeslis() {
+  if (PROEF) return;
+  let wens = new Set();
+  if (inst.volscherm) {
+    const ds = wereldDisplays();
+    const vol = VOL.volSchermen(ds.map(d => d.bounds), laatsteDip);
+    wens = new Set(ds.filter((d, i) => vol[i]).map(d => d.id));
+  }
+  const zelfde = wens.size === volIds.size && [...wens].every(i => volIds.has(i));
+  if (zelfde) { if (volTimer) { clearTimeout(volTimer); volTimer = null; } return; }
+  const erbij = [...wens].some(i => !volIds.has(i));
+  if (volTimer) clearTimeout(volTimer);
+  volTimer = setTimeout(() => { volTimer = null; volIds = wens; volToepassen(); }, erbij ? 700 : 0);
+}
+function volToepassen() {
+  const ds = wereldDisplays();
+  const vol = ds.filter(d => volIds.has(d.id)), vrij = ds.filter(d => !volIds.has(d.id));
+  const rest = vrij.length > 0 && VOL.past(vrij.map(d => d.workArea), vol.map(d => d.bounds));
+  const was = volVerborgen;
+  volVerborgen = vol.length > 0 && !rest;                            // er blijft niets over, of wat overblijft ligt om een vol scherm heen
+  if (!win || win.isDestroyed()) return;
+  herindeel();                                                       // zijn wereld zonder de volle schermen
+  if (volVerborgen) win.hide();
+  else if (was && zichtbaar) { win.showInactive(); win.setAlwaysOnTop(true, 'screen-saver'); }
+}
+
 function zetZicht(aan, vanBinnen) {
   zichtbaar = aan;
   if (win) {
     if (!aan) win.hide();
-    else if (!PROEF) { win.showInactive(); win.setAlwaysOnTop(true, 'screen-saver'); }
+    else if (!PROEF && !volVerborgen) { win.showInactive(); win.setAlwaysOnTop(true, 'screen-saver'); }
     if (!vanBinnen && klaar) win.webContents.send('vraag', 0, { wat: 'zicht', aan });
   }
   werkMenuBij();
@@ -214,7 +261,7 @@ let volgnr = 1;
 ipcMain.on('klaar', () => {
   klaar = true;
   zetVensters(); zendVensters();
-  if (!PROEF && zichtbaar && win) { win.showInactive(); win.setAlwaysOnTop(true, 'screen-saver'); }
+  if (!PROEF && zichtbaar && win && !volVerborgen) { win.showInactive(); win.setAlwaysOnTop(true, 'screen-saver'); }
   const doen = optie('do');
   if (doen) doe(doen.split(';').map(s => s.trim()).filter(Boolean));
 });
@@ -226,10 +273,12 @@ ipcMain.on('bewaar', (e, i) => {
   if (i && goedeNaam(i.naam)) inst.naam = i.naam;
   if (i && goedeGeest(i.geest)) inst.geest = { aan: i.geest.aan, voorkeur: i.geest.voorkeur, gezien: i.geest.gezien };
   if (i && typeof i.vensters === 'boolean') inst.vensters = i.vensters;
+  if (i && typeof i.volscherm === 'boolean') inst.volscherm = i.volscherm;
   if (i && typeof i.elementen === 'boolean') inst.elementen = i.elementen;
   if (i && goedeStijl(i.stijl)) inst.stijl = { top: i.stijl.top, vlek: i.stijl.vlek, wangen: i.stijl.wangen };
   schrijfInst();
   zetVensters();
+  volBeslis();                                                       // "fullscreen on/off" kan veranderd zijn
   if (tray) { tray.setImage(icoon(32)); tray.setToolTip(inst.naam); werkMenuBij(); }
   if (paneel && !paneel.isDestroyed()) paneel.setTitle(inst.naam);
   naarPaneel('stand');
@@ -298,7 +347,10 @@ function behandel(regel, sock) {
         u = { ok: true, pad, breed: u.breed, hoog: u.hoog };
       } catch (e) { u = { ok: false, fout: e.message }; }
     }
-    if (b.wat === 'status' && u.ok) { u.venster = win.getBounds(); u.vensterZichtbaar = win.isVisible(); u.pid = process.pid; u.verpakt = app.isPackaged; }
+    if (b.wat === 'status' && u.ok) {
+      u.venster = win.getBounds(); u.vensterZichtbaar = win.isVisible(); u.pid = process.pid; u.verpakt = app.isPackaged;
+      u.volscherm = { aan: inst.volscherm !== false, volle: [...volIds], verborgen: volVerborgen, wereld: { x: wereld.x, y: wereld.y, w: wereld.w, h: wereld.h, schermen: wereld.schermen.length } };
+    }
     terug(u);
   });
   win.webContents.send('vraag', nr, b);

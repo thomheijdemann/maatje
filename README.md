@@ -123,6 +123,26 @@ and he rides along; go to another page and he falls to whatever is below.
   accessibility of the browser, and that stays on until you restart the browser.
 - Off again: untick it in Settings, or `elements off`.
 
+**In the Claude app too.** The Claude app is a browser on the inside, so with the same switch on he can walk
+over what is in *that* window as well: the buttons, the box you type in, the rows of the list, and the blocks of
+text in the chat. For this window the finder also looks for text blocks, list rows and groups (in a browser it
+only looks for boxes, buttons, links and pictures). Again only the kind and the place, never the text.
+
+## Video in full screen (YouTube, games)
+
+When something fills a whole screen without a title bar (a YouTube video in full screen, a game), he steps
+out of the way:
+
+- That screen is no longer part of his world. If you have a second screen he just carries on there, and his
+  (see-through) window does not lie over the video any more, so the video plays as smooth as it would without him.
+- If all your screens are full, he hides until it is over, and then he comes back.
+- Nothing is looked for inside a window in full screen (no accessibility switched on for it, no places to stand: the
+  player controls come and go all the time).
+- A maximized window is **not** full screen (it has a title bar). A small notice on top of the video changes nothing;
+  a normal big window on top of it does (then you are looking at that window).
+- He leaves after 0.7 s (so a window that flashes by does nothing) and comes back at once.
+- Off again: untick **Step out of the way in full screen** in Settings, or `fullscreen off`.
+
 ## His little brain
 
 When nobody tells him anything, a little brain decides what he does. It is not a talking AI (he does not
@@ -246,7 +266,7 @@ Maatje.exe --do="walk middle; say Hi!; anim victory-dance"
 
 | Kind | Commands |
 |---|---|
-| Movement | `walk`, `run`, `sneak`, `jump`, `flip`, `spin`, `teleport`, `fly`, `land`, `climb`, `lap`, `perch`, `windows`, `elements` |
+| Movement | `walk`, `run`, `sneak`, `jump`, `flip`, `spin`, `teleport`, `fly`, `land`, `climb`, `lap`, `perch`, `windows`, `elements`, `fullscreen` |
 | Talking | `say`, `think`, `shout`, `whisper`, `quiet` |
 | Feelings | `emote`, `eyes`, `look`, `wave`, `cheer`, `nod`, `shake`, `bow`, `startle`, `dance`, `sit`, `stand`, `sleep`, `wake`, `type` |
 | Animations | `anim` |
@@ -298,9 +318,14 @@ backup is made first. From then on:
 | Claude starts a helper (a subagent) | a friend joins him and types along |
 | Claude asks you something or wants permission | he stops, waves and says "Can you take a look?" |
 | Claude has finished his turn | he cheers and shouts "Done!" |
+| Claude takes over your pc (computer use: he moves the mouse, clicks, types) | he runs along with the mouse, jumps onto the thing the mouse is over (a button, a block of text, a window), hops when Claude clicks, types along when Claude types, and says "Claude has the wheel!" |
 
 - The hook only tells Maatje *what* is happening (working, done, needs you) and for which session.
-  It does not pass on what you type or what Claude is doing.
+  It does not pass on what you type or what Claude is doing. For a takeover it passes on the **name** of the
+  tool (like `left_click`) and nothing else: not where Claude clicks, not what Claude types, not what is on your screen.
+  He gets the place of the mouse by himself, the way he always knows where it is.
+- He moves along for as long as Claude uses the mouse or keyboard, and for 9 seconds after the last time.
+  A command from you goes first.
 - If Maatje is not running, nothing happens.
 - Off for a while: untick "Follow along with Claude Code" in the window.
 - Gone completely: **Disconnect** in the window, or `node maatje.js disconnect`. Do that before you move

@@ -390,9 +390,15 @@ opdracht('vensters', {
   lees: aanUit, stil: true,
   maak: (f, a) => { M.inst.vensters = a.aan; M.plat.aan = a.aan; M.plat.zet(M.plat.ruw); M.bewaar(); return null; },
 });
+opdracht('volscherm', {
+  en: 'fullscreen', soort: 'movement', ook: ['hide-in-fullscreen'],
+  hulp: 'he steps out of the way while a video or a game fills a whole screen (full screen): he leaves that screen, and when all your screens are full he hides until it is over: fullscreen on|off', vb: 'fullscreen on',
+  lees: aanUit, stil: true,
+  maak: (f, a) => { M.inst.volscherm = a.aan; M.bewaar(); return null; },
+});
 opdracht('elementen', {
   en: 'elements', soort: 'movement', ook: ['page', 'pages'],
-  hulp: 'he can also stand on things in web pages, like the search box or a button in Chrome (he only sees the kind and the place of boxes, buttons, links and pictures, never any text; browsers may feel a little slower): elements on|off', vb: 'elements on',
+  hulp: 'he can also stand on things in web pages and in the Claude app, like the search box or a button in Chrome (he only sees the kind and the place of boxes, buttons, links, pictures and text blocks, never any text; browsers may feel a little slower): elements on|off', vb: 'elements on',
   lees: aanUit, stil: true,
   maak: (f, a) => { M.inst.elementen = a.aan; M.plat.elementen = a.aan; M.plat.zet(M.plat.ruw); M.bewaar(); return null; },
 });

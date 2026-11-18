@@ -167,6 +167,17 @@ async function hoofd() {
     }
     zoeker3.stop();
 
+    // the same page, but looking for more kinds of things (the way he does it inside the Claude app): text blocks, list rows and groups too
+    let lijstB = null;
+    const zoeker3b = vensters.start({ cacheMap: TMP, elementen: true, breed: true, alleenPid: bpid, bijLijst: l => { lijstB = l; }, bijFout: t => console.log('  window finder: ' + t) });
+    const wachtB = async ms => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const w = lijstB && paginaVan(lijstB); if (w && w.e.some(q => q[4] === 7) && w.e.some(q => q[4] === 8) && w.e.some(q => q[4] === 9)) return true; await slaap(100); } return false; };
+    const breedOk = await wachtB(25000);
+    const pb = lijstB && paginaVan(lijstB);
+    test('part 3: looking for more kinds (the Claude app way): text blocks, list rows and groups are found too', breedOk, pb ? pb.e.map(q => q.join(':')) : null);
+    test('... still only kinds and places, no text', pb && pb.e.every(q => q.length === 6 && q.every(n => typeof n === 'number')) && !JSON.stringify(lijstB).match(/block of text|A row|Another row|A group|result link|lucky|Search/), pb ? JSON.stringify(pb.e).slice(0, 160) : null);
+    test('... and everything from before is still there', pb && pb.e.filter(q => q[4] === 3).length >= 3 && pb.e.filter(q => q[4] === 2).length >= 2 && pb.e.some(q => q[4] === 1), pb && pb.e.map(q => q[4]));
+    zoeker3b.stop();
+
     // the real program on top of that page
     const prog3 = cp.spawn(EXE || ex, (EXE ? [] : [path.join(__dirname, '..', 'app')]).concat(['--proef', '--echte-vensters', '--elementen', '--elementen-pid=' + bpid, '--wereld=3840x1040x2']), { stdio: 'ignore', env: Object.assign({}, process.env, { MAATJE_SETTINGS: instPad }) });
     let op3 = false;

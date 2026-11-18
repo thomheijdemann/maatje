@@ -45,7 +45,7 @@ M.plat.zet = function (ruw) {
     for (let i = 0; i < P.ruw.length; i++) {
       const r = P.ruw[i], top = Math.round(r.y), sch = M.schermVan(r.x + r.w / 2);
       if (Math.abs(top - sch.y) > 14) maak(i, top, r.x, r.x + r.w, r.i);       // een venster dat het hele scherm vult heeft geen ruimte erboven
-      if (P.elementen && Array.isArray(r.e)) {                       // de dingen in een webpagina (vakken, knoppen, links, plaatjes): ook daar kan hij op staan, ook als het venster zelf het scherm vult
+      if (P.elementen && Array.isArray(r.e) && r.f !== 1) {          // de dingen in een webpagina (niet in een venster op volledig scherm: daar komen en gaan de knoppen van de speler); de dingen in een webpagina (vakken, knoppen, links, plaatjes): ook daar kan hij op staan, ook als het venster zelf het scherm vult
         for (const q of r.e) maak(i, Math.round(q[1]), q[0], q[0] + q[2], r.i * 1000000 + q[5] + 1, { elem: true, soort: q[4], win: r.i, hoog: q[3] });
       }
     }
@@ -116,5 +116,5 @@ M.plat.kies = function (f, wat) {
   return kans[0];
 };
 M.plat.status = function () {
-  return { aan: M.plat.aan, elementenAan: M.plat.elementen, vensters: M.plat.ruw.length, platforms: M.plat.lijst.filter(p => !p.elem).length, elementen: M.plat.lijst.filter(p => p.elem).length, lijst: M.plat.lijst.slice(0, 40).map(p => ({ id: p.id, x0: p.x0, x1: p.x1, y: p.y, delen: p.delen.length, prog: p.prog, vgr: p.vgr, elem: !!p.elem })) };
+  return { aan: M.plat.aan, volscherm: M.inst.volscherm !== false, elementenAan: M.plat.elementen, vensters: M.plat.ruw.length, platforms: M.plat.lijst.filter(p => !p.elem).length, elementen: M.plat.lijst.filter(p => p.elem).length, lijst: M.plat.lijst.slice(0, 40).map(p => ({ id: p.id, x0: p.x0, x1: p.x1, y: p.y, delen: p.delen.length, prog: p.prog, vgr: p.vgr, elem: !!p.elem })) };
 };

@@ -5,14 +5,14 @@
    The code is written in Dutch (the names and the comments below); what the user sees is English. */
 const DONKER = '#141413';
 const M = window.M = {
-  versie: '1.5.1', gebruiker: 'you',
+  versie: '1.6.0', gebruiker: 'you',
   W: 1920, H: 1040, dpr: 1,
   schermen: [{ x: 0, y: 0, w: 1920, h: 1040 }],
   t: 0, figuren: [], hoofd: null, fx: [], delen: [], bal: null,
   muis: { x: -9999, y: -9999, vx: 0, vy: 0, t: -99, klok: 0 },
-  inst: { naam: 'Maatje', kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, elementen: false, stijl: { top: 'geen', vlek: 'geen', wangen: false } },
+  inst: { naam: 'Maatje', kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, volscherm: true, elementen: false, stijl: { top: 'geen', vlek: 'geen', wangen: false } },
   // meeleven met Claude: welke sessies zijn aan het werk (komt binnen via haak.js), zie brein.js
-  werk: { sessies: {}, reactieTot: 0, vertrekNa: 0, spawnNa: 0, klaarKoel: 0, nodigKoel: 0 },
+  werk: { sessies: {}, reactieTot: 0, vertrekNa: 0, spawnNa: 0, klaarKoel: 0, nodigKoel: 0, overname: { t: -1e9, tool: '', begin: -1e9, aangekondigd: false, volgNa: 0, prikNa: 0, kijkNa: 0 } },
   proef: false, pauze: false, druk: true,
   fouten: [], foutTel: 0, wachters: [],
   laatsteOpdracht: -99, vrijVanaf: 3, pauzeNa: 3, blijfTot: 0,
@@ -53,7 +53,7 @@ M.kies = lijst => lijst[Math.floor(M.rnd() * lijst.length)];
 
 /* ---- de wereld: alle schermen naast elkaar, zonder de taakbalk ---- */
 M.zetWereld = function (w) {
-  M.W = w.w; M.H = w.h; M.dpr = w.dpr || 1;
+  M.W = w.w; M.H = w.h; M.dpr = w.dpr || 1; M.wereldX = w.x || 0;      // wereldX: waar de linkerkant van zijn wereld op het bureaublad ligt
   M.schermen = w.schermen.slice().sort((a, b) => a.x - b.x);
   cv.width = Math.round(M.W * M.dpr); cv.height = Math.round(M.H * M.dpr);
   cv.style.width = M.W + 'px'; cv.style.height = M.H + 'px';
@@ -165,5 +165,5 @@ M.klank = function (naam, n) {
 M.bewaar = function () {
   if (M.proef || !window.maatjeApp) return;
   const i = M.inst;
-  window.maatjeApp.bewaar({ naam: i.naam, kleur: i.kleur, maat: i.maat, hoed: i.hoed, geluid: i.geluid, vrij: i.vrij, meeleven: i.meeleven, skin: i.skin || '', vensters: i.vensters !== false, elementen: !!i.elementen, stijl: i.stijl, geest: M.geest ? M.geest.exporteer() : undefined });
+  window.maatjeApp.bewaar({ naam: i.naam, kleur: i.kleur, maat: i.maat, hoed: i.hoed, geluid: i.geluid, vrij: i.vrij, meeleven: i.meeleven, skin: i.skin || '', vensters: i.vensters !== false, volscherm: i.volscherm !== false, elementen: !!i.elementen, stijl: i.stijl, geest: M.geest ? M.geest.exporteer() : undefined });
 };

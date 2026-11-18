@@ -1,6 +1,6 @@
 {
   "name": "maatje",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "A little pixel pet that lives on your windows, with 500+ animations, and that Claude can control (unofficial fan project)",
   "private": true,
   "license": "MIT",
@@ -12,7 +12,9 @@
     "test": "node test/proef.js",
     "test:window": "node test/window.js",
     "build": "node tools/build-exe.js",
-    "test:windows": "node test/vensters.js"
+    "test:windows": "node test/vensters.js",
+    "test:fullscreen": "node test/volscherm.js",
+    "test:fullscreen-echt": "node test/volscherm-echt.js"
   },
   "devDependencies": {
     "electron": "33.4.11",

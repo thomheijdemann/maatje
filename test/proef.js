@@ -773,6 +773,69 @@ async function proeven() {
   test('web pages: the canvas stays clean', u.vuil === 0 && (await status()).foutTel === 0, u);
   await reset();
 
+  // ---- full screen: the things in a page are ignored in a window that fills a whole screen (the real deciding is done by the main program: see test/volscherm.js and test/vensters.js) ----
+  const VOL = extra => Object.assign({ i: 8000, x: 0, y: 0, w: 1920, h: 1080, p: 'chrome', a: 1, f: 1 }, extra || {});      // a full screen window is as high as the whole screen, taskbar included
+  await reset(); await doe('elements on'); await stap(0.3);
+  await vens([VOL({ e: PAGINA(0) })]); s = await status();
+  test('full screen: the things in a page are ignored there (the player controls come and go)', s.vensters.elementen === 0 && s.vensters.platforms === 0 && s.vensters.volscherm, s.vensters);
+  await vens([CHROME(0)]); s = await status();
+  test('... but in a window that is not in full screen they count as before', s.vensters.elementen === 4, s.vensters);
+  await doe('elements off'); await vens([]); await doe('fullscreen off'); await stap(0.3); s = await status();
+  test('fullscreen off: the setting is remembered in his status', s.vensters.volscherm === false, s.vensters);
+  await doe('fullscreen on'); await stap(0.3); s = await status();
+  test('fullscreen on again', s.vensters.volscherm === true, s.vensters);
+  await reset();
+
+  // ---- the Claude app: text blocks, list rows and groups are places to stand too ----
+  const CLAUDE = { i: 9100, x: 0, y: 0, w: 1920, h: 1040, p: 'claude', a: 1, e: [EL(700, 200, 800, 24, 7, 11), EL(700, 260, 800, 24, 7, 12), EL(200, 300, 300, 40, 8, 13), EL(700, 700, 800, 90, 9, 14), EL(700, 880, 800, 60, 1, 15)] };
+  await doe('elements on'); await stap(0.3); await vens([CLAUDE]); s = await status();
+  test('the Claude app: boxes, text blocks, list rows and groups (5 things) are places to stand', s.vensters.elementen === 5 && s.vensters.lijst.every(p => p.prog === 'claude'), s.vensters);
+  await doe('perch #' + (9100 * 1000000 + 12 + 1)); await stap(3.8, 1 / 30); s = await status();
+  test('perch on a text block of the Claude app: he lands exactly on top of it', s.hoofd.y === 260 && s.vensters.staOp === 'claude' && s.hoofd.x >= 700 && s.hoofd.x <= 1500 && !s.hoofd.lucht, s.hoofd);
+  await foto('on-claude-text', { gebied: { x: 500, y: 100, w: 1100, h: 400 } });
+  await doe('elements off'); await vens([]); await reset();
+
+  // ---- Claude takes over your pc (computer use): he moves along with the mouse ----
+  await doe('follow on'); await v({ wat: 'geest', zet: { energie: 0.9, verveling: 0.3, gezelligheid: 0.5, vergeet: true } });
+  await v({ wat: 'muis', x: 1500, y: 800 }); await stap(0.5);
+  u = await leef('overname', 'c1', 'left_click'); await stap(0.6, 1 / 30); s = await status();
+  test('takeover: Claude uses the mouse -> he notices and says so (only the tool name came along: ' + s.meeleven.overnameTool + ')', u.ok && s.meeleven.overname && /wheel/i.test(s.hoofd.zegt || '') && s.meeleven.overnameTool === 'left_click', { hoofd: s.hoofd, m: s.meeleven });
+  await foto('takeover-announce', { rond: true });
+  await stap(2.6, 1 / 30); await leef('overname', 'c1', 'mouse_move'); await stap(3.5, 1 / 30); s = await status();
+  test('takeover: he runs to the mouse and stays near it', dichtbij(s.hoofd.x, 1500, 70) && s.hoofd.y === VL && s.meeleven.overname, s.hoofd);
+  await v({ wat: 'muis', x: 400, y: 800 }); await leef('overname', 'c1', 'mouse_move'); await stap(4.5, 1 / 30); await leef('overname', 'c1', 'mouse_move'); s = await status();
+  test('takeover: the mouse moves away -> he follows', dichtbij(s.hoofd.x, 400, 70), s.hoofd);
+  await vens([A, B]); await v({ wat: 'muis', x: 500, y: 640 }); await leef('overname', 'c1', 'mouse_move'); await stap(5.5, 1 / 30); await leef('overname', 'c1', 'mouse_move'); s = await status();
+  test('takeover: the mouse is over a window -> he jumps onto it and stands on its top edge', s.vensters.staOp === 'notepad' && s.hoofd.y === 600 && !s.hoofd.lucht, { hoofd: s.hoofd, v: s.vensters.staOp });
+  await foto('takeover-on-window', { gebied: { x: 100, y: 300, w: 1100, h: 500 } });
+  await leef('overname', 'c1', 'left_click'); await stap(0.4, 1 / 30); s = await status();
+  const klikT = s.hoofd.doet;
+  await stap(3, 1 / 30);
+  await leef('overname', 'c1', 'type'); await stap(1.2, 1 / 30); s = await status();
+  test('takeover: Claude types -> he sits down and types along', s.hoofd.doet === 'werk' && s.meeleven.typt, s.hoofd);
+  await foto('takeover-typing', { rond: true });
+  await leef('overname', 'c1', 'screenshot'); await stap(3.5, 1 / 30); await leef('overname', 'c1', 'screenshot'); await stap(2, 1 / 30); s = await status();
+  test('takeover: Claude stops typing -> he stops too and watches the mouse', s.hoofd.doet !== 'werk' && s.meeleven.overname, s.hoofd);
+  await stap(10, 1 / 30); s = await status();
+  test('takeover: 9 seconds without anything from Claude -> it is over (then the normal typing takes over: ' + (s.meeleven.typt ? 'he types' : 'quiet') + ')', !s.meeleven.overname, s.meeleven);
+  await doe('say Hello'); await stap(0.4); await leef('overname', 'c1', 'left_click'); await stap(1, 1 / 30); s = await status();
+  test('takeover: an order from you goes first', /Hello/.test(s.hoofd.zegt || '') || s.hoofd.doet === 'zeg', s.hoofd);
+  await stap(5); await doe('follow off'); await stap(0.3);
+  u = await leef('overname', 'c1', 'left_click'); await stap(1.5, 1 / 30); s = await status();
+  test('follow off: he does not move along with Claude', u.meeleven === false && !s.meeleven.overname && !/wheel/i.test(s.hoofd.zegt || ''), { u, hoofd: s.hoofd });
+  await doe('follow on'); await stap(0.3); await vens([]); await reset(); await doe('follow on'); await stap(0.3);
+  // the real hook script: only computer use counts as "taking over", and only its name goes along
+  r = haak({ hook_event_name: 'PreToolUse', session_id: 'h9', tool_name: 'mcp__computer-use__left_click', tool_input: { coordinate: [10, 10], text: 'a secret that must not go along' } }); await stap(0.5); s = await status();
+  test('hook.js: a computer-use tool -> "takeover", with only the tool name (left_click)', stil(r) && s.meeleven.overname && s.meeleven.overnameTool === 'left_click', { code: r.status, m: s.meeleven });
+  r = haak({ hook_event_name: 'PreToolUse', session_id: 'h9', tool_name: 'mcp__remote-devices__computer_type' }); await stap(0.3); s = await status();
+  test('hook.js: the same computer-use tool from the remote kind of connection counts too', stil(r) && s.meeleven.overnameTool === 'type', s.meeleven);
+  await stap(10); await leef('einde', 'h9');
+  await v({ wat: 'zet', pad: 'werk.overname.t', waarde: -1e9 }); r = haak({ hook_event_name: 'PreToolUse', session_id: 'h9', tool_name: 'Bash' }); await stap(0.3); s = await status();
+  test('hook.js: any other tool (Bash) is plain "working", not a takeover', stil(r) && !s.meeleven.overname && s.meeleven.werkt, s.meeleven);
+  await leef('einde', 'h9'); await reset();
+  await v({ wat: 'zet', pad: 'werk.overname.t', waarde: -1e9 }); s = await status();
+  test('takeover: nothing left behind (no sessions, no takeover) before the next part', s.meeleven.sessies === 0 && !s.meeleven.overname && !s.meeleven.werkt, s.meeleven);
+
   // ---- his little mind ----
   const gz = (zet, extra) => v(Object.assign({ wat: 'geest', zet }, extra || {}));
   const fris = { energie: 0.9, verveling: 0.3, gezelligheid: 0.4, vergeet: true, aan: true };

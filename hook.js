@@ -7,7 +7,8 @@
    ends well (code 0), so Claude never notices it.
    Try it:  echo {"hook_event_name":"Stop"} | node hook.js
    The words sent to Maatje are Dutch, like the rest of the code: aan = working, hulpje = a helper
-   (subagent) started, hulpjeweg = a helper finished, nodig = Claude needs you, klaar = done, einde = session closed. */
+   (subagent) started, hulpjeweg = a helper finished, nodig = Claude needs you, klaar = done, einde = session closed,
+   overname = Claude is using your mouse and keyboard (computer use; only the NAME of the tool goes along, like left_click). */
 const net = require('net');
 
 const klaar = () => process.exit(0);
@@ -18,6 +19,7 @@ function gebeurtenis(h) {
   if (ev === 'PreToolUse') {
     if (/^(Agent|Task)$/.test(tool)) return 'hulpje';                    // Claude zet een hulpje in
     if (/^(AskUserQuestion|ExitPlanMode)$/.test(tool)) return 'nodig';   // Claude vraagt jou iets
+    if (/^mcp__(computer-use|computer_use)__/.test(tool) || /^mcp__remote-devices__computer_/.test(tool)) return 'overname';   // Claude gebruikt jouw muis en toetsenbord (computer use)
     return 'aan';
   }
   if (ev === 'PermissionRequest') return 'nodig';

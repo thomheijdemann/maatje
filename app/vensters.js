@@ -59,7 +59,7 @@ function start(opt) {
   function begin() {
     let exe;
     try { exe = zoekHulp(opt.cacheMap); } catch (e) { fout = e.message; if (opt.bijFout) opt.bijFout(fout); return; }
-    kind = cp.spawn(exe, [String(process.pid), String(opt.ms || 80)].concat(opt.elementen ? ['--elementen'] : [], opt.alleenPid ? ['--alleen-pid=' + opt.alleenPid] : []), { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
+    kind = cp.spawn(exe, [String(process.pid), String(opt.ms || 80)].concat(opt.elementen ? ['--elementen'] : [], opt.breed ? ['--breed'] : [], opt.alleenPid ? ['--alleen-pid=' + opt.alleenPid] : []), { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
     let buf = '';
     kind.stdout.setEncoding('utf8');
     kind.stdout.on('data', d => {

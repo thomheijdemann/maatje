@@ -79,7 +79,7 @@
       uiterlijk: { stijl: f.stijl, kleur: f.kleur },
       geest: M.geest ? M.geest.status() : null,
       animaties: { aantal: M.anim.lijst.length, eigen: M.anim.lijst.filter(a => a.eigen).length, fouten: M.anim.fouten.length, skin: f.skin ? f.skin.naam : null, beeld: f.beeld ? f.beeld.naam : null, prop: f.prop ? f.prop.naam : null, dy: +f.pose.dy.toFixed(2), rol: +f.animRol.toFixed(2) },
-      meeleven: { aan: M.inst.meeleven, sessies: Object.keys(M.werk.sessies).length, werkt: M.werkActief(), hulpjes: M.figuren.filter(k => k.hulpje).length, typt: !!f.nu && f.nuNaam === 'werk' },
+      meeleven: { aan: M.inst.meeleven, sessies: Object.keys(M.werk.sessies).length, werkt: M.werkActief(), hulpjes: M.figuren.filter(k => k.hulpje).length, typt: !!f.nu && f.nuNaam === 'werk', overname: M.overnameActief(), overnameTool: M.werk.overname.tool },
       fouten: M.fouten.slice(-6), foutTel: M.foutTel, klanken: M.proef ? G.tel : undefined,
     };
   };
@@ -162,8 +162,9 @@
     if (nr) app.antwoord(nr, u);
   });
   app.opWereld(w => {
+    const dx = typeof M.wereldX === 'number' ? M.wereldX - (w.x || 0) : 0;      // de linkerkant van zijn wereld schoof (een scherm kwam of ging weg): iedereen blijft op dezelfde plek van het scherm
     M.zetWereld(w);
-    for (const f of M.figuren) { f.gId = 0; if (f.vlak !== 0 || f.vliegt) f.laatLos(); f.x = klem(f.x, f.marge(), M.W - f.marge()); if (!f.lucht && !f.gepakt) f.y = M.vloer(f.x); }
+    for (const f of M.figuren) { f.gId = 0; if (f.vlak !== 0 || f.vliegt) f.laatLos(); f.x = klem(f.x + dx, f.marge(), M.W - f.marge()); if (!f.lucht && !f.gepakt) f.y = M.vloer(f.x); }
   });
   app.opVensters(l => { M.vindStand = { n: l.length, t: Math.round(M.t) }; M.plat.zet(l); });      // de vensters op het scherm, van het zoekprogramma
   app.opBegin(d => {
