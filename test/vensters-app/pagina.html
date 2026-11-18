@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Maatje test page</title>
+<style>
+  body { margin: 0; font-family: Arial, sans-serif; background: #fff; }
+  #kop { height: 60px; background: #eee; }
+  #logo { display: block; margin: 40px auto 20px; width: 272px; height: 92px; }
+  #zoek { display: block; margin: 0 auto; width: 560px; height: 44px; font-size: 18px; border: 1px solid #aaa; border-radius: 22px; padding: 0 20px; box-sizing: content-box; }
+  #knoppen { text-align: center; margin: 28px 0; }
+  button { height: 36px; padding: 0 16px; margin: 0 6px; font-size: 14px; }
+  #links { width: 560px; margin: 0 auto; }
+  #links a { display: block; margin: 14px 0; font-size: 18px; color: #1a0dab; }
+  #lang { height: 2400px; }
+  img.klein { width: 120px; height: 80px; display: inline-block; }
+</style>
+</head>
+<body>
+<div id="kop">Header</div>
+<img id="logo" alt="logo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='272' height='92'><rect width='272' height='92' fill='%234285f4'/></svg>">
+<input id="zoek" type="text" placeholder="Search" aria-label="search box">
+<div id="knoppen"><button id="b1">Search</button><button id="b2">I feel lucky</button></div>
+<div id="links">
+  <a href="#a">First result link</a>
+  <a href="#b">Second result link</a>
+  <a href="#c">Third result link</a>
+  <img class="klein" alt="picture" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80'><rect width='120' height='80' fill='%230b8043'/></svg>">
+</div>
+<div id="lang">scroll me</div>
+<script>
+  // the test scrolls this page by changing a number on the little test server
+  setInterval(function () {
+    fetch('/scroll').then(function (r) { return r.text(); }).then(function (t) { var y = parseInt(t, 10); if (y !== Math.round(window.scrollY)) window.scrollTo(0, y); });
+  }, 150);
+</script>
+</body>
+</html>

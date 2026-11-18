@@ -104,8 +104,24 @@ comes down to the floor now and then.
 **What he looks at.** To do this a small program (`vensters.exe`, the source is `app/vensters.cs`) checks
 about ten times a second where the windows on your screen are: their place, their size and which one is in
 front, plus the name of the program they belong to (for example `chrome`). It never reads what is in a window:
-not the title, not the content, not a screenshot. Nothing leaves your pc. Running from the source, Maatje makes
+not the title, not the content, not a screenshot. Nothing leaves your pc. (Only if you switch on
+"Stand on things in web pages", see below, it also asks browsers for the kind and place of the boxes, buttons,
+links and pictures on the page.) Running from the source, Maatje makes
 this little program once with the C# compiler that comes with Windows.
+
+## Standing on things in web pages (optional)
+
+Most browsers fill the whole screen, and then there is no room on top of the window. If you switch on
+**Stand on things in web pages** in Settings (or type `elements on`), he stands on what is *in* the page: the
+search box, the buttons, the links and the pictures of Chrome, Edge, Firefox and the like. Scroll the page
+and he rides along; go to another page and he falls to whatever is below.
+
+- To do that, the little window finder asks the browser, through the accessibility of Windows (UI Automation),
+  a few times a second which boxes, buttons, links and pictures are visible on the page and where they are.
+  It only gets the **kind and the place** of each one. It never asks for text, names or addresses.
+- It is **off by default**. The browser may feel a little slower while it is on: asking switches on the
+  accessibility of the browser, and that stays on until you restart the browser.
+- Off again: untick it in Settings, or `elements off`.
 
 ## His little brain
 
@@ -230,7 +246,7 @@ Maatje.exe --do="walk middle; say Hi!; anim victory-dance"
 
 | Kind | Commands |
 |---|---|
-| Movement | `walk`, `run`, `sneak`, `jump`, `flip`, `spin`, `teleport`, `fly`, `land`, `climb`, `lap`, `perch`, `windows` |
+| Movement | `walk`, `run`, `sneak`, `jump`, `flip`, `spin`, `teleport`, `fly`, `land`, `climb`, `lap`, `perch`, `windows`, `elements` |
 | Talking | `say`, `think`, `shout`, `whisper`, `quiet` |
 | Feelings | `emote`, `eyes`, `look`, `wave`, `cheer`, `nod`, `shake`, `bow`, `startle`, `dance`, `sit`, `stand`, `sleep`, `wake`, `type` |
 | Animations | `anim` |

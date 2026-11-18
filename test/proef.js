@@ -728,6 +728,51 @@ async function proeven() {
   u = await v({ wat: 'schoon' });
   test('his own look: the canvas stays clean', u.vuil === 0, u);
 
+  // ---- standing on things in web pages (made-up elements here; the real ones are tested in test/vensters.js) ----
+  const EL = (x, y, w, h, t, id) => [x, y, w, h, t, id];
+  const PAGINA = dy => [EL(300, 300 + dy, 600, 46, 1, 111), EL(500, 400 + dy, 100, 36, 2, 222), EL(300, 500 + dy, 560, 22, 3, 333), EL(1000, 650 + dy, 270, 92, 4, 444), EL(100, 60 + dy, 300, 30, 1, 555)];
+  const CHROME = (dy, extra) => Object.assign({ i: 5000, x: 0, y: 0, w: 1920, h: 1040, p: 'chrome', a: 1, e: PAGINA(dy) }, extra || {});
+  const ELEM = nr => 5000 * 1000000 + nr + 1;
+  await reset(); await doe('elements off'); await stap(0.5);
+  await vens([CHROME(0)]); s = await status();
+  test('web pages: with "elements" off (the default) the things in a page do not count', s.vensters.elementen === 0 && s.vensters.platforms === 0 && !s.vensters.elementenAan, s.vensters);
+  await doe('elements on'); await stap(0.3); s = await status();
+  test('elements on: boxes, buttons, links and pictures in the page become places to stand, even though the window fills the screen (4 of 5: one is too high to fit above)', s.vensters.elementenAan && s.vensters.elementen === 4 && s.vensters.platforms === 0, s.vensters);
+  test('... and the page is not "a new window": it does not make him curious', s.geest.nieuw === 0, s.geest);
+  await doe('perch #' + ELEM(111)); await stap(3.8, 1 / 30); s = await status();
+  test('perch on the search box: he lands exactly on top of it', s.hoofd.y === 300 && s.vensters.gId === ELEM(111) && s.vensters.staOp === 'chrome' && s.hoofd.x >= 300 && s.hoofd.x <= 900 && !s.hoofd.lucht, { hoofd: s.hoofd, gId: s.vensters.gId });
+  await foto('on-element', { gebied: { x: 200, y: 150, w: 900, h: 400 } });
+  const ex0 = s.hoofd.x;
+  await vens([CHROME(-100)]); await stap(0.3); s = await status();
+  test('the page is scrolled: the box moves up and he rides along', s.hoofd.y === 200 && dichtbij(s.hoofd.x, ex0, 1) && s.vensters.gId === ELEM(111), s.hoofd);
+  await vens([CHROME(0, { e: [] })]); await stap(2.5); s = await status();
+  test('the page changes and the box is gone: he falls down to the floor', s.hoofd.y === VL && !s.vensters.staOp && !s.hoofd.lucht, s.hoofd);
+  await vens([CHROME(0)]); await doe('perch #' + ELEM(111)); await stap(3.8, 1 / 30);
+  await vens([WIN(6000, 250, 280, 700, 200, 'popup'), CHROME(0)]); await stap(2.5); s = await status();
+  test('a window slides in front of the box: he is no longer on it, he falls down (here onto the link below it)', s.hoofd.y > 300 && s.vensters.gId !== ELEM(111) && !s.hoofd.lucht, s.hoofd);
+  await vens([CHROME(0)]); await doe('perch chrome'); await stap(3.8, 1 / 30); s = await status();
+  test('perch chrome: he finds something to stand on in the browser, also with the window itself filling the screen', s.vensters.staOp === 'chrome' && !s.hoofd.lucht && s.hoofd.y !== VL, s.hoofd);
+  await doe('elements off'); await stap(2.5); s = await status();
+  test('elements off: he falls down and the page is ignored again', s.hoofd.y === VL && s.vensters.elementen === 0 && !s.vensters.elementenAan, { hoofd: s.hoofd, v: s.vensters });
+  await doe('elements on'); await vens([CHROME(0), WIN(7000, 100, 700, 500, 250, 'notepad')]); await stap(0.3);
+  const alleEl = new Set([300, 400, 500, 650, 700]);
+  const mis = []; const soorten = new Set();
+  for (let i = 0; i < 14; i++) {
+    await doe('perch random'); await stap(3.8, 1 / 30); s = await status();
+    if (!s.vensters.staOp || s.hoofd.lucht || !alleEl.has(s.hoofd.y)) mis.push(i + ': ' + JSON.stringify(s.hoofd) + ' ' + s.vensters.staOp);
+    else soorten.add(s.vensters.gId > 5000000000 ? 'element' : 'window');
+  }
+  test('perch random, 14 times in a row between boxes, buttons, links, pictures and a window: he always lands', !mis.length && soorten.has('element'), { mis: mis.slice(0, 2), soorten: [...soorten] });
+  await v({ wat: 'geest', zet: { energie: 0.9, verveling: 0.3, gezelligheid: 0.6, vergeet: true } }); await doe('stop', 'land'); await stap(4); await doe('roam on');
+  let opIets = 0; const bezocht2 = new Set();
+  for (let i = 0; i < 24; i++) { await v({ wat: 'muis', x: 10 + (i % 7) * 3, y: 10 }); await stap(5, 1 / 30); s = await status(); if (s.vensters.staOp) { opIets++; bezocht2.add(s.vensters.gId); } }
+  test('2 minutes by himself with a page open: he is up on its boxes and buttons most of the time (' + opIets + ' of 24 looks, ' + bezocht2.size + ' different places)', opIets >= 10 && bezocht2.size >= 2, { opIets, plekken: bezocht2.size });
+  await doe('elements off'); await vens([]); await doe('stop', 'roam off'); await stap(4); s = await status();
+  test('web pages: all gone and off again: he is back on the floor', s.hoofd.y === VL && !s.vensters.staOp, s.hoofd);
+  u = await v({ wat: 'schoon' });
+  test('web pages: the canvas stays clean', u.vuil === 0 && (await status()).foutTel === 0, u);
+  await reset();
+
   // ---- his little mind ----
   const gz = (zet, extra) => v(Object.assign({ wat: 'geest', zet }, extra || {}));
   const fris = { energie: 0.9, verveling: 0.3, gezelligheid: 0.4, vergeet: true, aan: true };

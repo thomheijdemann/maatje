@@ -16,6 +16,7 @@ const path = require('path');
 const ARGS = process.argv.slice(app.isPackaged ? 1 : 2);
 const HOOK = ARGS.includes('--hook');
 const PROEF = ARGS.includes('--proef');
+const ECHTELEMENTEN = ARGS.includes('--elementen');             // alleen voor de test: het kijken in webpagina's aanzetten (in een proef wordt er niets bewaard)
 const ECHTVENSTERS = ARGS.includes('--echte-vensters');          // alleen voor de test: ook in een proef de echte vensters van het scherm gebruiken
 const optie = naam => { const a = ARGS.find(x => x.startsWith('--' + naam + '=')); return a ? a.slice(naam.length + 3) : null; };
 const PIJP = '\\\\.\\pipe\\' + (PROEF ? 'maatje-proef' : 'maatje');
@@ -27,11 +28,11 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 const INSTPAD = path.join(app.getPath('userData'), 'instellingen.json');
 const EIGENMAP = path.join(app.getPath('userData'), 'animations');
 const STIJLEN = { top: ['geen', 'antenne', 'oren', 'hoorns', 'kuif'], vlek: ['geen', 'buik', 'strepen', 'stippen'] };
-const inst = { naam: 'Maatje', kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, stijl: { top: 'geen', vlek: 'geen', wangen: false }, geest: { aan: true, voorkeur: {}, gezien: {} }, schermen: 'alle' };
+const inst = { naam: 'Maatje', kleur: '#d97757', maat: 6, hoed: 'geen', geluid: true, vrij: true, meeleven: true, skin: '', vensters: true, stijl: { top: 'geen', vlek: 'geen', wangen: false }, elementen: false, geest: { aan: true, voorkeur: {}, gezien: {} }, schermen: 'alle' };
 const goedeNaam = n => typeof n === 'string' && n.length >= 1 && n.length <= 20 && /^[A-Za-z0-9 .'-]+$/.test(n);
 const goedeGeest = g => !!g && typeof g === 'object' && typeof g.aan === 'boolean' && ['voorkeur', 'gezien'].every(k => g[k] && typeof g[k] === 'object' && Object.keys(g[k]).length <= 40 && Object.keys(g[k]).every(n => /^[a-z0-9._-]{1,40}$/.test(n) && typeof g[k][n] === 'number' && isFinite(g[k][n])));
 const goedeStijl = s => !!s && typeof s === 'object' && STIJLEN.top.includes(s.top) && STIJLEN.vlek.includes(s.vlek) && typeof s.wangen === 'boolean';
-let vinder = null, laatsteVensters = [], vinderFout = null;
+let vinder = null, vinderEl = false, laatsteVensters = [], vinderFout = null;
 let win = null, paneel = null, tray = null, wereld = null, klaar = false, zichtbaar = true;
 
 function leesInst() {
@@ -49,6 +50,7 @@ function leesInst() {
     if (goedeNaam(i.naam)) inst.naam = i.naam;
     if (goedeGeest(i.geest)) inst.geest = { aan: i.geest.aan, voorkeur: i.geest.voorkeur, gezien: i.geest.gezien };
     if (typeof i.vensters === 'boolean') inst.vensters = i.vensters;
+    if (typeof i.elementen === 'boolean') inst.elementen = i.elementen;
     if (goedeStijl(i.stijl)) inst.stijl = { top: i.stijl.top, vlek: i.stijl.vlek, wangen: i.stijl.wangen };
   } catch (e) { /* nog geen instellingen: de standaard is goed */ }
 }
@@ -106,9 +108,13 @@ function zendVensters() { if (win && klaar && !win.isDestroyed()) win.webContent
 function zetVensters() {
   const aan = inst.vensters && (!PROEF || ECHTVENSTERS);
   if (!aan) { if (vinder) { vinder.stop(); vinder = null; } if (laatsteVensters.length) { laatsteVensters = []; zendVensters(); } return; }
-  if (vinder) return;
+  if (vinder && vinderEl === !!inst.elementen) return;
+  if (vinder) { vinder.stop(); vinder = null; }                      // het kijken in webpagina's is aan- of uitgezet: opnieuw starten
+  vinderEl = !!inst.elementen;
   vinder = require('./vensters.js').start({
     cacheMap: app.getPath('userData'),
+    elementen: vinderEl,
+    alleenPid: optie('elementen-pid') === null ? 0 : (parseInt(optie('elementen-pid'), 10) > 0 ? parseInt(optie('elementen-pid'), 10) : -1),      // (alleen voor de test; een ongeldig getal = in niets kijken)
     bijFout: t => { vinderFout = t; },
     bijLijst: ruw => {
       const uit = [];
@@ -117,7 +123,12 @@ function zetVensters() {
         try { r = screen.screenToDipRect(null, r); } catch (e) { /* dan blijven het echte beeldpunten */ }
         const x = r.x - wereld.x, y = r.y - wereld.y;
         if (x + r.width <= 0 || x >= wereld.w || y >= wereld.h) continue;
-        uit.push({ i: w.i, x, y, w: r.width, h: r.height, p: w.p, a: w.a ? 1 : 0 });
+        const o = { i: w.i, x, y, w: r.width, h: r.height, p: w.p, a: w.a ? 1 : 0 };
+        if (vinderEl && Array.isArray(w.e)) {                           // de dingen in een webpagina: ook omrekenen (zelfde verhouding als het venster)
+          const k = w.w ? r.width / w.w : 1;
+          o.e = w.e.map(q => [Math.round(r.x + (q[0] - w.x) * k - wereld.x), Math.round(r.y + (q[1] - w.y) * k - wereld.y), Math.round(q[2] * k), Math.round(q[3] * k), q[4], q[5]]);
+        }
+        uit.push(o);
       }
       laatsteVensters = uit;
       zendVensters();
@@ -215,6 +226,7 @@ ipcMain.on('bewaar', (e, i) => {
   if (i && goedeNaam(i.naam)) inst.naam = i.naam;
   if (i && goedeGeest(i.geest)) inst.geest = { aan: i.geest.aan, voorkeur: i.geest.voorkeur, gezien: i.geest.gezien };
   if (i && typeof i.vensters === 'boolean') inst.vensters = i.vensters;
+  if (i && typeof i.elementen === 'boolean') inst.elementen = i.elementen;
   if (i && goedeStijl(i.stijl)) inst.stijl = { top: i.stijl.top, vlek: i.stijl.vlek, wangen: i.stijl.wangen };
   schrijfInst();
   zetVensters();
@@ -362,6 +374,7 @@ else {
   });
   app.whenReady().then(() => {
     leesInst();
+    if (ECHTELEMENTEN) inst.elementen = true;
     maakVenster();
     if (!PROEF) maakTray();
     startPijp();

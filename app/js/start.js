@@ -175,7 +175,7 @@
     if (d.zaad) M.zaai(d.zaad);
     const s0 = M.schermen[d.wereld.eerste || 0] || M.schermen[0];
     if (!M.inst.stijl) M.inst.stijl = Object.assign({}, STIJL_STANDAARD);
-    M.plat.aan = M.inst.vensters !== false;
+    M.plat.aan = M.inst.vensters !== false; M.plat.elementen = !!M.inst.elementen;
     const f = new Figuur({ x: Math.round(s0.x + s0.w * 0.72), kleur: M.inst.kleur, maat: M.inst.maat, hoed: M.inst.hoed, hoofd: true, stijl: Object.assign({}, M.inst.stijl) });
     M.figuren.push(f); M.hoofd = f;
     if (!M.proef) {                                   // hij komt uit de lucht vallen en zwaait

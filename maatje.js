@@ -125,7 +125,7 @@ function engelsStatus(s) {
       standingOnWindowOf: s.vensters ? s.vensters.staOp : null, look: s.uiterlijk ? { top: { geen: 'none', antenne: 'antennae', oren: 'ears', hoorns: 'horns', kuif: 'tuft' }[s.uiterlijk.stijl.top], pattern: { geen: 'none', buik: 'belly', strepen: 'stripes', stippen: 'spots' }[s.uiterlijk.stijl.vlek], cheeks: s.uiterlijk.stijl.wangen, color: s.uiterlijk.kleur } : null,
     },
     mind: s.geest ? { on: s.geest.aan, feeling: s.geest.stemming, energy: s.geest.energie, boredom: s.geest.verveling, wantsCompany: s.geest.gezelligheid, doing: s.geest.doel, because: s.geest.reden, likes: s.geest.voorkeur } : null,
-    windows: s.vensters ? { standOnWindows: s.vensters.aan, seen: s.vensters.vensters, platforms: s.vensters.platforms } : null,
+    windows: s.vensters ? { standOnWindows: s.vensters.aan, seen: s.vensters.vensters, platforms: s.vensters.platforms, standOnPageThings: s.vensters.elementenAan, pageThings: s.vensters.elementen } : null,
     pets: s.figuren, effects: s.effecten, particles: s.deeltjes, ball: s.bal,
     roam: s.vrij, sound: s.geluid,
     follow: { on: m.aan, sessions: m.sessies, claudeIsWorking: m.werkt, helpers: m.hulpjes, typing: m.typt },

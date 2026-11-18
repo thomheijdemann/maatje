@@ -10,7 +10,7 @@
    - M.plat.kies(f, wat)        which window can he jump to, and how
    Platforms are one-way: he jumps through them from below and lands on them from above.
    The code below is written in Dutch. */
-M.plat = { lijst: [], op: new Map(), aan: true, ruw: [], teller: 0, ooit: new Set(), eerste: true };
+M.plat = { lijst: [], op: new Map(), aan: true, elementen: false, ruw: [], teller: 0, ooit: new Set(), eerste: true };
 
 /* een stuk van een lijn (a, b) weghalen waar het venster erboven (q0, q1) overheen valt */
 function snijAf(delen, q0, q1) {
@@ -28,24 +28,31 @@ M.plat.zet = function (ruw) {
   const lijst = [], op = new Map();
   if (P.aan) {
     const hoogMin = 10 * s + 24, breedMin = 10 * s;                 // hij moet er boven passen en erop kunnen staan
-    for (let i = 0; i < P.ruw.length; i++) {
-      const r = P.ruw[i], top = Math.round(r.y), cx = r.x + r.w / 2, sch = M.schermVan(cx);
-      if (top < hoogMin || top > sch.y + sch.h - 30) continue;       // te hoog (past er niet boven) of onderaan het scherm
-      if (Math.abs(top - sch.y) <= 14) continue;                     // een venster dat het hele scherm vult
-      let delen = [[Math.max(0, Math.round(r.x)), Math.min(M.W, Math.round(r.x + r.w))]];
+    /* een bovenrand (van een venster, of van een ding in een webpagina) als platform; alleen het stuk dat je echt ziet */
+    const maak = (i, top, x0, x1, id, extra) => {
+      const sch = M.schermVan((x0 + x1) / 2);
+      if (top < hoogMin || top > sch.y + sch.h - 30) return;         // te hoog (past er niet boven) of onderaan het scherm
+      let delen = [[Math.max(0, Math.round(x0)), Math.min(M.W, Math.round(x1))]];
       for (let j = 0; j < i && delen.length; j++) {                  // vensters die erboven liggen en de bovenrand bedekken
         const q = P.ruw[j];
         if (q.y <= top && q.y + q.h > top) delen = snijAf(delen, q.x, q.x + q.w);
       }
       delen = delen.filter(d => d[1] - d[0] >= breedMin);
-      if (!delen.length) continue;
-      const p = { id: r.i, y: top, x0: Math.round(r.x), x1: Math.round(r.x + r.w), delen, prog: r.p || '?', hoog: r.h, vgr: r.a === 1 };
+      if (!delen.length) return;
+      const r = P.ruw[i], p = Object.assign({ id, y: top, x0: Math.round(x0), x1: Math.round(x1), delen, prog: r.p || '?', hoog: r.h, vgr: r.a === 1 }, extra || {});
       lijst.push(p); op.set(p.id, p);
+    };
+    for (let i = 0; i < P.ruw.length; i++) {
+      const r = P.ruw[i], top = Math.round(r.y), sch = M.schermVan(r.x + r.w / 2);
+      if (Math.abs(top - sch.y) > 14) maak(i, top, r.x, r.x + r.w, r.i);       // een venster dat het hele scherm vult heeft geen ruimte erboven
+      if (P.elementen && Array.isArray(r.e)) {                       // de dingen in een webpagina (vakken, knoppen, links, plaatjes): ook daar kan hij op staan, ook als het venster zelf het scherm vult
+        for (const q of r.e) maak(i, Math.round(q[1]), q[0], q[0] + q[2], r.i * 1000000 + q[5] + 1, { elem: true, soort: q[4], win: r.i, hoog: q[3] });
+      }
     }
   }
   P.lijst = lijst; P.op = op;
-  for (const p of lijst) {                                           // een venster dat hij nog nooit zag: nieuw (zijn brein gaat het bekijken)
-    if (!P.ooit.has(p.id)) { P.ooit.add(p.id); if (!P.eerste && M.geest) M.geest.nieuwVenster(p); }
+  for (const p of lijst) {                                           // een venster dat hij nog nooit zag: nieuw (zijn brein gaat het bekijken). Dingen in een pagina tellen niet: die komen en gaan de hele tijd.
+    if (!P.ooit.has(p.id)) { P.ooit.add(p.id); if (!P.eerste && !p.elem && M.geest) M.geest.nieuwVenster(p); }
   }
   if (lijst.length || P.ruw.length) P.eerste = false;
   if (M.geest) M.geest.vensters(lijst);
@@ -109,5 +116,5 @@ M.plat.kies = function (f, wat) {
   return kans[0];
 };
 M.plat.status = function () {
-  return { aan: M.plat.aan, vensters: M.plat.ruw.length, platforms: M.plat.lijst.length, lijst: M.plat.lijst.slice(0, 12).map(p => ({ id: p.id, x0: p.x0, x1: p.x1, y: p.y, delen: p.delen.length, prog: p.prog, vgr: p.vgr })) };
+  return { aan: M.plat.aan, elementenAan: M.plat.elementen, vensters: M.plat.ruw.length, platforms: M.plat.lijst.filter(p => !p.elem).length, elementen: M.plat.lijst.filter(p => p.elem).length, lijst: M.plat.lijst.slice(0, 40).map(p => ({ id: p.id, x0: p.x0, x1: p.x1, y: p.y, delen: p.delen.length, prog: p.prog, vgr: p.vgr, elem: !!p.elem })) };
 };

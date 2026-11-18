@@ -9,6 +9,7 @@
    Exit code 1 on a failure. */
 const cp = require('child_process');
 const fs = require('fs');
+const http = require('http');
 const net = require('net');
 const os = require('os');
 const path = require('path');
@@ -130,6 +131,79 @@ async function hoofd() {
   await v({ wat: 'afsluiten' }).catch(() => {});
   await slaap(300);
   try { prog.kill(); } catch (e) { /* al weg */ }
+
+  // ---- part 3: things in a web page (a real Chrome or Edge with its own, empty profile; your own browser is not touched) ----
+  const browser = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(p => fs.existsSync(p));
+  if (!browser) { console.log('  skip  part 3: no Chrome or Edge on this pc'); }
+  else {
+    console.log('\nA browser window with a test page appears in the left of your screen for about half a minute (its own empty profile, it does not touch your own browser).');
+    let scroll = 0;
+    const pagina = fs.readFileSync(path.join(__dirname, 'vensters-app', 'pagina.html'));
+    const server = http.createServer((q, r) => { if (q.url === '/scroll') { r.setHeader('Cache-Control', 'no-store'); r.end(String(scroll)); } else { r.setHeader('Content-Type', 'text/html; charset=utf-8'); r.end(pagina); } });
+    await new Promise(res => server.listen(0, '127.0.0.1', res));
+    const profiel = path.join(TMP, 'browser-profiel');
+    const exeNaam = path.basename(browser).toLowerCase();
+    const killBrowser = () => { try { cp.execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*" + profiel + "*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"], { windowsHide: true, timeout: 30000, stdio: 'ignore' }); } catch (e) { /* al weg */ } };
+    cp.spawn(browser, ['--user-data-dir=' + profiel, '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--window-position=150,150', '--window-size=1000,760', '--new-window', 'http://127.0.0.1:' + server.address().port + '/'], { stdio: 'ignore', detached: true }).unref();
+    let bpid = 0;
+    for (let i = 0; i < 40 && !bpid; i++) {                       // the browser program of OUR profile (not yours)
+      await slaap(400);
+      try { bpid = parseInt(cp.execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', "(Get-CimInstance Win32_Process -Filter \"Name='" + exeNaam + "'\" | Where-Object { $_.CommandLine -like '*" + profiel + "*' -and $_.CommandLine -notlike '*--type=*' } | Select-Object -First 1).ProcessId"], { windowsHide: true, timeout: 20000, encoding: 'utf8' }).trim(), 10) || 0; } catch (e) { bpid = 0; }
+    }
+    test('part 3: the test browser starts', bpid > 0, bpid);
+    if (bpid <= 0) { console.log('  The test browser was not found, so part 3 stops here (the window finder is not started: it must never look inside your own browser).'); killBrowser(); server.close(); await opruimen(); try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) { /* niet erg */ } console.log('\n' + fout + ' failed.'); return 1; }
+    let lijstW = null;
+    const zoeker3 = vensters.start({ cacheMap: TMP, elementen: true, alleenPid: bpid, bijLijst: l => { lijstW = l; }, bijFout: t => console.log('  window finder: ' + t) });
+    const wacht3 = async (pred, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (lijstW && pred(lijstW)) return true; await slaap(100); } return false; };
+    const paginaVan = l => l.find(w => w.p === exeNaam.replace('.exe', '') && Array.isArray(w.e) && w.e.some(q => q[4] === 1 && q[2] >= 540 && q[2] <= 660 && q[3] >= 40 && q[3] <= 54));
+    const gevonden = bpid > 0 && await wacht3(l => !!paginaVan(l), 45000);
+    test('part 3: the window finder sees the search box of the test page (a box of about 600 x 46)', gevonden, (lijstW || []).filter(w => w.p.indexOf('chrome') >= 0 || w.p.indexOf('msedge') >= 0).map(w => ({ p: w.p, e: w.e && w.e.length })));
+    const pw = paginaVan(lijstW || []);
+    if (pw) {
+      const soort = k => pw.e.filter(q => q[4] === k);
+      test('... and the two buttons, the three links and the two pictures', soort(2).filter(q => q[3] >= 30 && q[3] <= 40 && q[2] >= 70 && q[2] <= 120).length >= 2 && soort(3).filter(q => q[2] >= 500 && q[2] <= 600).length >= 3 && soort(4).filter(q => q[2] >= 260 && q[2] <= 285 && q[3] >= 85 && q[3] <= 100).length >= 1 && soort(4).filter(q => q[2] >= 110 && q[2] <= 130).length >= 1, pw.e.map(q => q.join(':')));
+      test('... with only a kind and a place for each (no text, no names)', pw.e.every(q => q.length === 6 && q.every(n => typeof n === 'number')) && !JSON.stringify(lijstW).match(/result link|lucky|Search|logo|picture/), JSON.stringify(pw.e).slice(0, 200));
+      test('... and it only looked inside the test browser (nothing from other browser windows)', lijstW.filter(w => w.e && w.i !== pw.i).length === 0, lijstW.filter(w => w.e).length);
+    }
+    zoeker3.stop();
+
+    // the real program on top of that page
+    const prog3 = cp.spawn(EXE || ex, (EXE ? [] : [path.join(__dirname, '..', 'app')]).concat(['--proef', '--echte-vensters', '--elementen', '--elementen-pid=' + bpid, '--wereld=3840x1040x2']), { stdio: 'ignore', env: Object.assign({}, process.env, { MAATJE_SETTINGS: instPad }) });
+    let op3 = false;
+    for (let i = 0; i < 80 && !op3; i++) { await slaap(250); op3 = await leeft(PIJP); }
+    if (!op3) { test('part 3: the program starts', false); prog3.kill(); }
+    else {
+      try {
+        await v({ wat: 'doe', regels: ['roam off', 'run s1:middle'] }); await v({ wat: 'stap', sec: 12 });
+        let s3;
+        const zoekBox = st => st.vensters.lijst.find(p => p.elem && p.x1 - p.x0 >= 540 && p.x1 - p.x0 <= 660);
+        for (let i = 0; i < 300; i++) { s3 = await v({ wat: 'status' }); if (zoekBox(s3)) break; await slaap(150); }
+        const box = zoekBox(s3);
+        test('part 3: the real program sees the things in the page as places to stand', !!box && s3.vensters.elementen >= 4, s3.vensters);
+        if (box) {
+          await v({ wat: 'doe', regels: ['perch #' + box.id] }); await v({ wat: 'stap', sec: 4.5, dt: 1 / 30 }); s3 = await v({ wat: 'status' });
+          const nu = zoekBox(s3) || box;
+          test('part 3: he jumps onto the search box of the real page', s3.vensters.gId === box.id && gelijk(s3.hoofd.y, nu.y, 1) && !s3.hoofd.lucht, { hoofd: s3.hoofd, box: nu });
+          await v({ wat: 'foto', pad: path.join(TMP, 'op-pagina.png'), kleur: '#262a31', gebied: { x: 100, y: 100, w: 1100, h: 800 } });
+          const y0 = s3.hoofd.y; scroll = 120;
+          let omhoog = false;
+          for (let i = 0; i < 40 && !omhoog; i++) { await slaap(400); await v({ wat: 'stap', sec: 0.3, dt: 1 / 30 }); s3 = await v({ wat: 'status' }); if (s3.vensters.gId === box.id && gelijk(s3.hoofd.y, y0 - 120, 4)) omhoog = true; }
+          test('part 3: the page is scrolled 120 pixels: the search box and he move up together', omhoog, { y0, y: s3.hoofd.y, gId: s3.vensters.gId });
+        }
+        killBrowser(); bpid = 0;
+        let viel = false;
+        for (let i = 0; i < 40 && !viel; i++) { await slaap(400); await v({ wat: 'stap', sec: 0.5, dt: 1 / 30 }); s3 = await v({ wat: 'status' }); if (s3.hoofd.y === 1040 && !s3.vensters.staOp && !s3.hoofd.lucht) viel = true; }
+        test('part 3: the browser is closed: he falls down to the floor', viel, s3.hoofd);
+        s3 = await v({ wat: 'status' });
+        test('part 3: not a single error in the program', s3.foutTel === 0, s3.fouten);
+      } catch (e) { test('part 3 ran all the way through', false, e.message); }
+      await v({ wat: 'afsluiten' }).catch(() => {});
+      await slaap(300);
+      try { prog3.kill(); } catch (e) { /* al weg */ }
+    }
+    killBrowser();
+    server.close();
+  }
   await opruimen();
   try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) { /* niet erg */ }
   console.log('\n' + (fout ? fout + ' failed.' : 'All good.'));

@@ -315,7 +315,7 @@
     $('t-geest').addEventListener('change', e => doe(['mind ' + (e.target.checked ? 'on' : 'off')]));
     $('g-praat').addEventListener('click', () => doe(['mind']));
     $('g-vergeet').addEventListener('click', () => doe(['mind forget']));
-    for (const [id, woord] of [['t-vrij', 'vrij'], ['t-vensters', 'vensters'], ['t-geluid', 'geluid'], ['t-meeleven', 'meeleven']]) $(id).addEventListener('change', e => doe([woord + ' ' + (e.target.checked ? 'aan' : 'uit')]));
+    for (const [id, woord] of [['t-vrij', 'vrij'], ['t-vensters', 'vensters'], ['t-elementen', 'elementen'], ['t-geluid', 'geluid'], ['t-meeleven', 'meeleven']]) $(id).addEventListener('change', e => doe([woord + ' ' + (e.target.checked ? 'aan' : 'uit')]));
     $('k-koppel').addEventListener('click', async () => {
       const u = await api.koppel(!stand.koppel.gekoppeld);
       toon($('c-uit'), u.ok ? u.tekst : fouttekst(u), !u.ok);
@@ -370,7 +370,7 @@
     $('waar').textContent = s.zichtbaar ? 'on your desktop' : 'hidden';
     $('waar').classList.toggle('uit', !s.zichtbaar);
     $('k-zicht').textContent = s.zichtbaar ? 'Hide' : 'Show';
-    $('t-vrij').checked = !!s.inst.vrij; $('t-geluid').checked = !!s.inst.geluid; $('t-meeleven').checked = !!s.inst.meeleven; $('t-vensters').checked = s.inst.vensters !== false;
+    $('t-vrij').checked = !!s.inst.vrij; $('t-geluid').checked = !!s.inst.geluid; $('t-meeleven').checked = !!s.inst.meeleven; $('t-vensters').checked = s.inst.vensters !== false; $('t-elementen').checked = !!s.inst.elementen;
     const vs = s.vensters || {};
     $('v-stand').textContent = s.inst.vensters === false ? '' : vs.loopt ? 'He sees ' + vs.vensters + (vs.vensters === 1 ? ' window' : ' windows') + ' right now.' : vs.fout ? 'The window finder does not work: ' + vs.fout : 'Starting the window finder...';
     try {                                              // wat zijn brein nu voelt (loopt in het venster op het bureaublad)
