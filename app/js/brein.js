@@ -121,10 +121,14 @@ M.zelf = function (regels) { M.doe(regels, { vrij: true }); };
 M.brein = function (dt) {
   const f = M.hoofd;
   if (!f || !f.zichtbaar) return;
+  if (M.geest) {                                       // zijn gevoelens veranderen, en wat hij leerde wordt af en toe bewaard
+    M.geest.stap(dt);
+    if (M.geest.vuil && M.t - M.geest.laatsteSave > 30) { M.geest.laatsteSave = M.t; M.geest.vuil = false; M.bewaar(); }
+  }
   // aaien: de muis een tijdje over hem heen bewegen
   if (M.onderMuis === f && !M.gepakt && M.t - M.muis.t < 0.3) {
     f.aaiT += dt;
-    if (f.aaiT > 0.9 && M.t > f.aaiKoel) { f.aaiT = 0; f.aaiKoel = M.t + 4; f.emote = { naam: 'hart', t: 0, duur: 1.3 }; f.ogen = 'blij'; f.ogenTot = M.t + 1.3; M.klank('pop'); }
+    if (f.aaiT > 0.9 && M.t > f.aaiKoel) { f.aaiT = 0; f.aaiKoel = M.t + 4; f.emote = { naam: 'hart', t: 0, duur: 1.3 }; f.ogen = 'blij'; f.ogenTot = M.t + 1.3; M.klank('pop'); if (M.geest) M.geest.aai(f); }
   } else if (M.onderMuis !== f) f.aaiT = 0;
 
   // Claude is aan het werk: gaan zitten typen. Een opdracht gaat voor; 12 s daarna pakt hij het werk weer op.
@@ -143,10 +147,13 @@ M.brein = function (dt) {
   if (f.nu || f.rij.length || f.bij.length || f.lucht || f.gepakt) { M.vrijVanaf = M.t + M.pauzeNa; return; }
   f.vrijBezig = false;
   if (!M.inst.vrij) return;
+  const ge = M.geest, slim = !!(ge && ge.aan);
   const muisDicht = M.t - M.muis.t < 1.5 && Math.hypot(M.muis.x - f.x, M.muis.y - (f.y - 5 * f.maat)) < 170;
   if (f.houding === 'slaap') {                        // slapen: alleen de slaap die hij zelf begon stopt vanzelf
     if (f.vrijSlaap && muisDicht) { f.vrijSlaap = false; M.pauzeNa = 3; M.zelf(['schrik', 'kijk muis']); }
+    else if (f.vrijSlaap && slim && ge.terug) { ge.terug = false; f.vrijSlaap = false; M.pauzeNa = 2; ge.doel = 'wave hello'; ge.reden = 'you are back'; M.zelf(['wakker', 'kijk muis', 'zwaai', 'emotie hart']); }      // je bent terug
     else if (f.vrijSlaap && f.slaapTot && M.t > f.slaapTot) { f.vrijSlaap = false; f.slaapTot = 0; M.pauzeNa = 1; M.zelf(['wakker']); }      // met vensters in de buurt slaapt hij maar even
+    else if (f.vrijSlaap && slim && ge.energie > 0.97) { f.vrijSlaap = false; M.pauzeNa = 1; M.zelf(['wakker']); }       // helemaal uitgerust
     return;
   }
   if (M.t < M.vrijVanaf) return;
@@ -155,13 +162,22 @@ M.brein = function (dt) {
     if (M.t < M.blijfTot) return;
   }
   M.blijfTot = 0;
+  if (slim) {                                          // zijn brein (geest.js): gevoelens, wat hij ziet en wat hij leerde bepalen wat hij doet
+    if (ge.terug) { ge.terug = false; M.pauzeNa = 3; M.zelf(['kijk muis', 'zwaai', 'emotie ster']); ge.reden = 'you are back'; ge.doel = 'wave hello'; return; }      // welkom terug
+    if (muisDicht && ge.gezelligheid > 0.3 && M.t > (M.zwaaiKoel || 0)) { M.zwaaiKoel = M.t + 25; M.pauzeNa = 2; ge.gezelligheid = Math.max(0, ge.gezelligheid - 0.3); ge.doel = 'wave hello'; ge.reden = 'you are close'; M.zelf(['kijk muis', 'zwaai']); return; }
+    const k = ge.kies(f);
+    M.pauzeNa = k.pauze !== undefined ? k.pauze : (M.plat.aan && M.plat.lijst.length ? 0.4 + M.rnd() * 2.2 : 1.5 + M.rnd() * 4);
+    ge.doel = k.doel; ge.reden = k.reden;
+    M.zelf(k.regels);
+    if (k.slaap) { f.slaapVraag = true; f.slaapTot = k.slaapTot || 0; }
+    return;
+  }
   const stil = M.t - Math.max(M.laatsteOpdracht, M.muis.t), r = M.rnd();
   M.pauzeNa = 1.5 + M.rnd() * 5;
   const metVensters = M.plat.aan && M.plat.lijst.length > 0;
-  if (stil > 240 && r < (metVensters ? 0.06 : 0.5)) { M.zelf(['zit', 'wacht 1.5', 'slaap']); f.vrijSlaap = true; f.slaapTot = metVensters ? M.t + 25 + M.rnd() * 35 : 0; return; }
+  if (stil > 240 && r < (metVensters ? 0.06 : 0.5)) { M.zelf(['zit', 'wacht 1.5', 'slaap']); f.slaapVraag = true; f.slaapTot = metVensters ? M.t + 25 + M.rnd() * 35 : 0; return; }
   if (muisDicht && r < 0.5 && M.t > (M.zwaaiKoel || 0)) { M.zwaaiKoel = M.t + 25; M.zelf(['kijk muis', 'zwaai']); return; }
-  /* Zijn vensters: zodra er vensters zijn, leeft hij erop. Hij springt er zelf op en van het ene naar het andere, loopt over de bovenrand,
-     kijkt rond, zit even, en komt maar heel soms naar beneden. Geen opdracht nodig. */
+  /* zonder brein ("mind off"): zoals eerst, willekeurig. Zijn vensters: zodra er vensters zijn, leeft hij erop. */
   if (M.plat.aan && M.plat.lijst.length && f.vlak === 0 && !f.vliegt) {
     const opVenster = f.gId && M.plat.op.has(f.gId), andere = M.plat.kies(f, 'toevallig');      // is er een venster om naartoe te springen?
     M.pauzeNa = 0.4 + M.rnd() * 2.2;

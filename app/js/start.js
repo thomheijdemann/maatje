@@ -77,6 +77,7 @@
       vrij: M.inst.vrij, geluid: M.inst.geluid, muisVast: M.muisVast, fps: M.fps,
       vensters: Object.assign(M.plat.status(), { staOp: f.gId ? (M.plat.op.get(f.gId) || {}).prog || '?' : null, gId: f.gId, vinder: M.vindStand || null }),
       uiterlijk: { stijl: f.stijl, kleur: f.kleur },
+      geest: M.geest ? M.geest.status() : null,
       animaties: { aantal: M.anim.lijst.length, eigen: M.anim.lijst.filter(a => a.eigen).length, fouten: M.anim.fouten.length, skin: f.skin ? f.skin.naam : null, beeld: f.beeld ? f.beeld.naam : null, prop: f.prop ? f.prop.naam : null, dy: +f.pose.dy.toFixed(2), rol: +f.animRol.toFixed(2) },
       meeleven: { aan: M.inst.meeleven, sessies: Object.keys(M.werk.sessies).length, werkt: M.werkActief(), hulpjes: M.figuren.filter(k => k.hulpje).length, typt: !!f.nu && f.nuNaam === 'werk' },
       fouten: M.fouten.slice(-6), foutTel: M.foutTel, klanken: M.proef ? G.tel : undefined,
@@ -129,6 +130,19 @@
         return { ok: true, vuil: n, eerste };
       }
       case 'zaai': M.zaai(b.zaad || 1); return { ok: true };
+      case 'geest': {                                 // de proef: gevoelens zetten en kijken wat hij leerde
+        const g = M.geest;
+        for (const k of ['energie', 'verveling', 'gezelligheid']) if (typeof (b.zet || {})[k] === 'number') g[k] = b.zet[k];
+        if (b.zet && typeof b.zet.aan === 'boolean') g.aan = b.zet.aan;
+        if (b.zet && b.zet.voorkeur) g.voorkeur = Object.assign({}, b.zet.voorkeur);
+        if (b.zet && b.zet.vergeet) g.vergeet();
+        if (b.zet && b.zet.nieuwVenster) g.nieuw.push({ id: b.zet.nieuwVenster, t: M.t });
+        if (b.actie === 'aai') g.aai(M.hoofd); else if (b.actie === 'klik') g.klik(M.hoofd); else if (b.actie === 'gegooid') g.gegooid(b.prog);
+        if (b.actie === 'exporteer') return { ok: true, uit: g.exporteer() };
+        if (b.actie === 'importeer') { g.importeer(b.data); return { ok: true, status: g.status() }; }
+        if (b.actie === 'kies') { const k = g.kies(M.hoofd); return { ok: true, naam: k.naam, regels: k.regels, doel: k.doel, reden: k.reden }; }
+        return { ok: true, status: g.status() };
+      }
       case 'vensters': M.plat.zet(b.lijst || []); return { ok: true, platforms: M.plat.lijst.length };      // nagemaakte vensters (de proef heeft geen echte)
       case 'zet': {                                   // een eigenschap zetten, bijvoorbeeld hoofd.hoed
         const d = String(b.pad).split('.');
@@ -156,6 +170,7 @@
     M.proef = !!d.proef;
     M.gebruiker = d.gebruiker || 'you';
     Object.assign(M.inst, d.inst);
+    if (M.geest && d.inst.geest) M.geest.importeer(d.inst.geest);
     M.zetWereld(d.wereld);
     if (d.zaad) M.zaai(d.zaad);
     const s0 = M.schermen[d.wereld.eerste || 0] || M.schermen[0];

@@ -312,6 +312,9 @@
     for (const n of Object.keys(HOEDEN)) { const o = el('option', '', enWoord('hoed', n)); o.value = n; hoed.append(o); }
     hoed.addEventListener('change', () => doe(['hoed ' + hoed.value]));
     for (const b of document.querySelectorAll('.maat')) b.addEventListener('click', () => doe(['maat ' + b.dataset.maat]));
+    $('t-geest').addEventListener('change', e => doe(['mind ' + (e.target.checked ? 'on' : 'off')]));
+    $('g-praat').addEventListener('click', () => doe(['mind']));
+    $('g-vergeet').addEventListener('click', () => doe(['mind forget']));
     for (const [id, woord] of [['t-vrij', 'vrij'], ['t-vensters', 'vensters'], ['t-geluid', 'geluid'], ['t-meeleven', 'meeleven']]) $(id).addEventListener('change', e => doe([woord + ' ' + (e.target.checked ? 'aan' : 'uit')]));
     $('k-koppel').addEventListener('click', async () => {
       const u = await api.koppel(!stand.koppel.gekoppeld);
@@ -370,6 +373,15 @@
     $('t-vrij').checked = !!s.inst.vrij; $('t-geluid').checked = !!s.inst.geluid; $('t-meeleven').checked = !!s.inst.meeleven; $('t-vensters').checked = s.inst.vensters !== false;
     const vs = s.vensters || {};
     $('v-stand').textContent = s.inst.vensters === false ? '' : vs.loopt ? 'He sees ' + vs.vensters + (vs.vensters === 1 ? ' window' : ' windows') + ' right now.' : vs.fout ? 'The window finder does not work: ' + vs.fout : 'Starting the window finder...';
+    try {                                              // wat zijn brein nu voelt (loopt in het venster op het bureaublad)
+      const q = await api.vraag({ wat: 'status' }), g = q && q.geest;
+      if (g) {
+        $('t-geest').checked = !!g.aan;
+        const pct = n => Math.round(n * 100) + '%', EN = { calm: 'calm', sleepy: 'sleepy', bored: 'bored', curious: 'curious', lonely: 'in need of company', happy: 'happy' };
+        const likes = g.voorkeur.filter(x => x.waarde > 0.1).map(x => x.prog + ' (' + (x.waarde > 0.5 ? 'a lot' : 'a bit') + ')'), dislikes = g.voorkeur.filter(x => x.waarde < -0.1).map(x => x.prog);
+        $('g-stand').textContent = g.aan ? 'He feels ' + (EN[g.stemming] || g.stemming) + '.\nEnergy ' + pct(g.energie) + ' \u00b7 boredom ' + pct(g.verveling) + ' \u00b7 wants company ' + pct(g.gezelligheid) + (g.doel ? '\nJust now: ' + g.doel + ' (' + g.reden + ').' : '') + '\n' + (likes.length ? 'He likes: ' + likes.join(', ') + '.' : 'He is still finding out what he likes.') + (dislikes.length ? ' He does not like: ' + dislikes.join(', ') + '.' : '') : 'His little brain is off: he does things at random.';
+      }
+    } catch (e) { /* de overlay is er nog niet */ }
     const st = s.inst.stijl || STIJL_EFFEN, EN_TOP = { geen: 'none', antenne: 'antennae', oren: 'ears', hoorns: 'horns', kuif: 'tuft' }, EN_VLEK = { geen: 'none', buik: 'belly', strepen: 'stripes', stippen: 'spots' };
     $('u-top').value = EN_TOP[st.top] || 'none'; $('u-vlek').value = EN_VLEK[st.vlek] || 'none'; $('u-wangen').checked = !!st.wangen;
     f.stijl = tf.stijl = lf.stijl = Object.assign({}, st);

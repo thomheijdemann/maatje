@@ -26,6 +26,7 @@ static class Vensters
     [DllImport("user32.dll")] static extern bool EnumWindows(Terug f, IntPtr l);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
     [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] static extern int GetWindowTextLengthW(IntPtr h);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassNameW(IntPtr h, StringBuilder s, int n);
@@ -60,6 +61,7 @@ static class Vensters
     {
         StringBuilder uit = new StringBuilder("[");
         bool eerste = true;
+        IntPtr voorgrond = GetForegroundWindow();                                                // the window you are working in ("a":1 in the list)
         EnumWindows(delegate (IntPtr h, IntPtr l)
         {
             if (!IsWindowVisible(h) || IsIconic(h)) return true;
@@ -82,7 +84,7 @@ static class Vensters
             if (!eerste) uit.Append(',');
             eerste = false;
             uit.Append("{\"i\":").Append(h.ToInt64()).Append(",\"x\":").Append(r.L).Append(",\"y\":").Append(r.T)
-               .Append(",\"w\":").Append(b).Append(",\"h\":").Append(hg).Append(",\"p\":\"").Append(Programma(pid)).Append("\"}");
+               .Append(",\"w\":").Append(b).Append(",\"h\":").Append(hg).Append(",\"p\":\"").Append(Programma(pid)).Append("\"").Append(h == voorgrond ? ",\"a\":1" : "").Append("}");
             return true;
         }, IntPtr.Zero);
         return uit.Append(']').ToString();

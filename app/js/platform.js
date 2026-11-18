@@ -10,7 +10,7 @@
    - M.plat.kies(f, wat)        which window can he jump to, and how
    Platforms are one-way: he jumps through them from below and lands on them from above.
    The code below is written in Dutch. */
-M.plat = { lijst: [], op: new Map(), aan: true, ruw: [], teller: 0 };
+M.plat = { lijst: [], op: new Map(), aan: true, ruw: [], teller: 0, ooit: new Set(), eerste: true };
 
 /* een stuk van een lijn (a, b) weghalen waar het venster erboven (q0, q1) overheen valt */
 function snijAf(delen, q0, q1) {
@@ -39,11 +39,16 @@ M.plat.zet = function (ruw) {
       }
       delen = delen.filter(d => d[1] - d[0] >= breedMin);
       if (!delen.length) continue;
-      const p = { id: r.i, y: top, x0: Math.round(r.x), x1: Math.round(r.x + r.w), delen, prog: r.p || '?', hoog: r.h };
+      const p = { id: r.i, y: top, x0: Math.round(r.x), x1: Math.round(r.x + r.w), delen, prog: r.p || '?', hoog: r.h, vgr: r.a === 1 };
       lijst.push(p); op.set(p.id, p);
     }
   }
   P.lijst = lijst; P.op = op;
+  for (const p of lijst) {                                           // een venster dat hij nog nooit zag: nieuw (zijn brein gaat het bekijken)
+    if (!P.ooit.has(p.id)) { P.ooit.add(p.id); if (!P.eerste && M.geest) M.geest.nieuwVenster(p); }
+  }
+  if (lijst.length || P.ruw.length) P.eerste = false;
+  if (M.geest) M.geest.vensters(lijst);
 };
 M.plat.staatOp = function (p, x) { for (const d of p.delen) if (x >= d[0] && x <= d[1]) return true; return false; };
 /* het dichtstbijzijnde stuk dat hij kan staan, gezien vanaf x */
@@ -79,24 +84,30 @@ M.plat.plan = function (f, p, tx) {
   }
   return null;
 };
-/* welk venster? wat: 'dichtbij' (standaard), 'toevallig', 'links', 'rechts', 'hoger', of de naam van een programma (chrome) */
-M.plat.kies = function (f, wat) {
-  const rand = 7 * f.maat, kans = [];
+/* alle vensters waar hij naartoe kan springen, met de plek en de sprong. wat: 'dichtbij' (standaard), 'toevallig', 'links', 'rechts', 'hoger',
+   de naam van een programma (chrome), of een bepaald venster: '#<nummer>' (of '#<nummer>:<x>' voor een bepaalde plek erop) */
+M.plat.alle = function (f, wat) {
+  const rand = 7 * f.maat, kans = [], id = /^#(\d+)(?::(-?\d+))?$/.exec(wat || '');
   for (const p of M.plat.lijst) {
     if (p.id === f.gId) continue;
-    if (wat && !['dichtbij', 'toevallig', 'links', 'rechts', 'hoger'].includes(wat) && !p.prog.includes(wat)) continue;
-    const tx = wat === 'toevallig' ? (() => { const d = p.delen[Math.floor(M.rnd() * p.delen.length)], a = d[0] + Math.min(rand, (d[1] - d[0]) / 2), b = d[1] - Math.min(rand, (d[1] - d[0]) / 2); return a + M.rnd() * (b - a); })() : M.plat.dichtbij(p, f.x, rand);
+    if (id) { if (p.id !== +id[1]) continue; }
+    else if (wat && !['dichtbij', 'toevallig', 'links', 'rechts', 'hoger'].includes(wat) && !p.prog.includes(wat)) continue;
+    const tx = id && id[2] !== undefined ? M.plat.dichtbij(p, +id[2], rand) : wat === 'toevallig' ? (() => { const d = p.delen[Math.floor(M.rnd() * p.delen.length)], a = d[0] + Math.min(rand, (d[1] - d[0]) / 2), b = d[1] - Math.min(rand, (d[1] - d[0]) / 2); return a + M.rnd() * (b - a); })() : M.plat.dichtbij(p, f.x, rand);
     if (wat === 'links' && tx >= f.x - 10) continue;
     if (wat === 'rechts' && tx <= f.x + 10) continue;
     if (wat === 'hoger' && p.y >= f.y - 10) continue;
     const plan = M.plat.plan(f, p, tx);
     if (plan) kans.push({ p, x: tx, plan, kost: Math.abs(tx - f.x) + Math.abs(p.y - f.y) * 0.6 });
   }
+  return kans;
+};
+M.plat.kies = function (f, wat) {
+  const kans = M.plat.alle(f, wat);
   if (!kans.length) return null;
   if (wat === 'toevallig') return M.kies(kans);
   kans.sort((a, b) => a.kost - b.kost);
   return kans[0];
 };
 M.plat.status = function () {
-  return { aan: M.plat.aan, vensters: M.plat.ruw.length, platforms: M.plat.lijst.length, lijst: M.plat.lijst.slice(0, 12).map(p => ({ x0: p.x0, x1: p.x1, y: p.y, delen: p.delen.length, prog: p.prog })) };
+  return { aan: M.plat.aan, vensters: M.plat.ruw.length, platforms: M.plat.lijst.length, lijst: M.plat.lijst.slice(0, 12).map(p => ({ id: p.id, x0: p.x0, x1: p.x1, y: p.y, delen: p.delen.length, prog: p.prog, vgr: p.vgr })) };
 };

@@ -560,7 +560,9 @@ async function proeven() {
   u = await pj("maatjePaneel.koppel(false).then(k => P.ververs().then(() => ({ k, s: P.staat().gekoppeld })))");
   try { aj = JSON.parse(fs.readFileSync(APPINST, 'utf8')); } catch (e) { aj = { hooks: 'unreadable' }; }
   test('window: Disconnect takes them out again', u.k.ok && u.s === false && !aj.hooks, aj);
-  await pj("P.tab('inst'), 1");
+  u = await pj("P.tab('inst'), P.ververs().then(() => document.getElementById('g-stand').textContent)");
+  test('window: Settings shows how his little brain feels', /He feels/.test(u) && /Energy [0-9]+%/.test(u), u);
+  await pj("P.tab('inst'), document.getElementById('blad-inst').scrollTop = 0, 1");
   await v({ wat: 'paneel-foto', pad: path.join(UIT, 'window-3-settings.png') });
   u = await pj("P.tab('anims'), P.staat()");
   test('window: not a single error in the window', u.fouten.length === 0, u.fouten);
@@ -661,6 +663,7 @@ async function proeven() {
   await doe('perch higher'); await stap(3.6, 1 / 30); s = await status();
   test('perch higher: to a window that is higher than where he stands', !!s.vensters.staOp, s.hoofd);
   // by himself, all the time, with windows around: nobody tells him anything
+  await v({ wat: 'geest', zet: { energie: 0.9, verveling: 0.3, gezelligheid: 0.4, vergeet: true } });      // (after all those animations his brain would be very tired)
   await doe('stop', 'land'); await stap(5); await doe('roam on');
   let eerst = -1;
   for (let i = 0; i < 40 && eerst < 0; i++) { await stap(1, 1 / 30); s = await status(); if (s.vensters.staOp) eerst = i + 1; }
@@ -668,7 +671,7 @@ async function proeven() {
   let opVenster = 0, f2 = (await status()).foutTel, binnen2 = true, laatste2 = null, wissels = 0;
   const bezocht = new Set();
   for (let i = 0; i < 72; i++) {
-    await stap(5, 1 / 30); s = await status();
+    await v({ wat: 'muis', x: 10 + (i % 7) * 3, y: 10 }); await stap(5, 1 / 30); s = await status();      // somebody is at the computer (the mouse moves a little, far away from him)
     const nu = s.vensters.staOp ? s.vensters.gId : null;
     if (nu) { opVenster++; bezocht.add(nu); if (laatste2 && laatste2 !== nu) wissels++; laatste2 = nu; }
     if (s.hoofd.x < 0 || s.hoofd.x > W || s.hoofd.y > VL || s.hoofd.y < 0) binnen2 = false;
@@ -725,6 +728,101 @@ async function proeven() {
   u = await v({ wat: 'schoon' });
   test('his own look: the canvas stays clean', u.vuil === 0, u);
 
+  // ---- his little mind ----
+  const gz = (zet, extra) => v(Object.assign({ wat: 'geest', zet }, extra || {}));
+  const fris = { energie: 0.9, verveling: 0.3, gezelligheid: 0.4, vergeet: true, aan: true };
+  const muisAan = (i, x) => v({ wat: 'muis', x: x === undefined ? 10 + (i % 7) * 3 : x, y: 10 });          // somebody moves the mouse, far away from him
+  await reset(); await gz(fris);
+  s = await status();
+  test('mind: he has feelings (energy, boredom, wanting company) and a mood', !!s.geest && s.geest.aan && s.geest.energie > 0.8 && typeof s.geest.stemming === 'string' && s.geest.verveling >= 0 && s.geest.gezelligheid >= 0, s.geest);
+  await doe('stop', 'run left', 'run right', 'run left', 'run right', 'run left', 'run right', 'run left', 'run right'); await stap(70, 1 / 30); s = await status();
+  const moe1 = s.geest.energie;
+  test('mind: moving around makes him tired', moe1 < 0.86, moe1);
+  await doe('stop', 'sit', 'wait 80'); await stap(60, 1 / 30); s = await status();
+  test('mind: sitting still makes him rest: his energy comes back', s.geest.energie > moe1 + 0.12, { voor: moe1, na: s.geest.energie });
+  await doe('stop', 'stand'); await stap(1);
+  await reset(); await gz({ energie: 0.1, verveling: 0.2, gezelligheid: 0.2, vergeet: true });
+  await doe('roam on'); let rustte = false;
+  for (let i = 0; i < 40 && !rustte; i++) { await muisAan(i); await stap(3, 1 / 30); s = await status(); if (['rest', 'sleep'].includes(s.geest.doel) || s.hoofd.houding) rustte = true; }
+  test('mind: when he is tired he rests (sits down, yawns or sleeps) instead of running around', rustte && /tired|worn/.test(s.geest.reden), s.geest);
+  await doe('stop', 'stand', 'wake'); await reset(); await gz(fris);
+  // a new window: he goes to look at it
+  await vens([A, B]); await doe('roam on'); await stap(2);
+  for (let i = 0; i < 20; i++) { await muisAan(i); await stap(3, 1 / 30); }
+  await vens([A, B, WIN(3000, 2100, 500, 400, 300, 'newapp')]); s = await status();
+  test('mind: a new window shows up and he notices it', s.geest.nieuw === 1, s.geest);
+  let naarNieuw = -1;
+  for (let i = 0; i < 20 && naarNieuw < 0; i++) { await muisAan(i); await stap(2, 1 / 30); s = await status(); if (s.vensters.staOp === 'newapp') naarNieuw = (i + 1) * 2; }
+  test('mind: and goes to look at it within 40 seconds (' + naarNieuw + ' s)', naarNieuw > 0, s.geest);
+  s = await status();
+  test('mind: once he has been there it is not new any more', s.geest.nieuw === 0, s.geest);
+  // the window you are working in: he keeps you company
+  await vens([A, B, WIN(3000, 2100, 500, 400, 300, 'newapp'), WIN(1005, 1600, 300, 450, 400, 'editor')].map(w => (w.p === 'chrome' ? Object.assign({ a: 1 }, w) : w)));
+  await vens([Object.assign({ a: 1 }, B), A, WIN(3000, 2100, 500, 400, 300, 'newapp'), WIN(1005, 1600, 300, 450, 400, 'editor')]);
+  await gz({ gezelligheid: 0.9, energie: 0.9, verveling: 0.3 });
+  let opVoorgrond = 0, opAnder = 0;
+  for (let i = 0; i < 60; i++) {
+    await muisAan(i, 1100 + (i % 5) * 40); await stap(3, 1 / 30); s = await status();
+    if (s.vensters.staOp === 'chrome') opVoorgrond++; else if (s.vensters.staOp) opAnder++;
+    if (i % 4 === 0) await gz({ gezelligheid: 0.9, energie: 0.9 });
+  }
+  test('mind: he mostly hangs out on the window you are working in (' + opVoorgrond + ' of ' + (opVoorgrond + opAnder) + ' looks, with four windows)', opVoorgrond >= (opVoorgrond + opAnder) * 0.36, { opVoorgrond, opAnder });
+  // you are away, and you come back
+  await doe('stop'); await gz(fris); await vens([A, B]);
+  let sliep = false;
+  for (let i = 0; i < 40 && !sliep; i++) { await stap(15, 1 / 20); s = await status(); if (s.hoofd.houding === 'slaap') sliep = true; }
+  test('mind: when you are away for a long time he gets sleepy and falls asleep', sliep && s.geest.weg, { geest: s.geest, houding: s.hoofd.houding });
+  await muisAan(0); await muisAan(1); await stap(1.5, 1 / 30); await muisAan(2); await stap(2, 1 / 30); s = await status();
+  test('mind: you are back: he wakes up and is happy to see you', s.hoofd.houding !== 'slaap' && !s.geest.weg && (s.hoofd.doet === 'zwaai' || s.hoofd.emotie === 'ster' || s.hoofd.doet === 'kijk' || s.geest.doel === 'wave hello'), { hoofd: s.hoofd, geest: s.geest });
+  await stap(8, 1 / 30);
+  // learning: petting makes him like a program, being thrown makes him dislike it
+  await reset(); await gz({ vergeet: true, energie: 0.9, verveling: 0.3, gezelligheid: 0.4 });
+  await vens([A, B, WIN(1005, 1600, 300, 450, 400, 'editor')]);
+  await doe('perch notepad'); await stap(3.5, 1 / 30);
+  for (let i = 0; i < 4; i++) await gz({}, { actie: 'aai' });
+  await doe('perch chrome'); await stap(3.5, 1 / 30);
+  for (let i = 0; i < 3; i++) await gz({}, { actie: 'gegooid', prog: 'chrome' });
+  s = await status();
+  const vk = {}; for (const x of s.geest.voorkeur) vk[x.prog] = x.waarde;
+  test('mind: petting him on a notepad window made him like notepad, being thrown off chrome made him dislike it', vk.notepad >= 0.6 && vk.chrome <= -0.5, vk);
+  await reset(); await vens([A, B, WIN(1005, 1600, 300, 450, 400, 'editor')]); await gz({ energie: 0.9, verveling: 0.6, gezelligheid: 0.3 });
+  const telling = { 1001: 0, 1002: 0, 1005: 0 };
+  for (let i = 0; i < 300; i++) { const k = await gz({ energie: 0.9, verveling: 0.6 }, { actie: 'kies' }); const m = /^perch #(\d+)/.exec((k.regels || []).find(r => /^perch #/.test(r)) || ''); if (m) telling[m[1]]++; }
+  test('mind: afterwards he chooses the window he likes most often (notepad ' + telling[1001] + ', editor ' + telling[1005] + ', chrome ' + telling[1002] + ')', telling[1001] > telling[1005] && telling[1005] > telling[1002] && telling[1001] > 2 * telling[1002], telling);
+  // a click on a window he stands on
+  await gz({ vergeet: true }); await doe('perch editor'); await stap(3.5, 1 / 30); s = await status();
+  const hx = s.hoofd.x, hy = s.hoofd.y - 30;
+  await v({ wat: 'muis', x: hx - 400, y: hy - 200 }); await v({ wat: 'muis', x: hx, y: hy }); await v({ wat: 'muis', soort: 'neer' }); await v({ wat: 'muis', soort: 'op' }); await stap(0.5);
+  await v({ wat: 'muis', x: 5, y: 5 }); await v({ wat: 'muis', x: 6, y: 6 }); s = await status();
+  const vk2 = {}; for (const x of s.geest.voorkeur) vk2[x.prog] = x.waarde;
+  test('mind: a click on him while he stands on an editor window makes him like editors a little more', vk2.editor > 0.05, vk2);
+  // remembering
+  await gz({}, { actie: 'aai' });
+  const bew = (await gz({}, { actie: 'exporteer' })).uit;
+  await gz({ vergeet: true }); const leeg = await status();
+  const terug = await gz({}, { actie: 'importeer', data: bew });
+  const slecht = await gz({}, { actie: 'importeer', data: { aan: true, voorkeur: { '../hack': 1, 'ok': 'x', 'good': 0.5, 'nan': NaN }, gezien: {} } });
+  test('mind: what he learned can be saved and read back; strange data is ignored', leeg.geest.voorkeur.length === 0 && terug.status.voorkeur.some(x => x.prog === 'editor') && bew.aan === true && !slecht.status.voorkeur.some(x => x.prog === '../hack' || x.prog === 'ok' || x.prog === 'nan') && slecht.status.voorkeur.some(x => x.prog === 'good'), { leeg: leeg.geest.voorkeur, terug: terug.status.voorkeur, slecht: slecht.status.voorkeur });
+  // the command
+  await reset(); await gz({ vergeet: true, energie: 0.9 });
+  await doe('mind'); await stap(0.8); s = await status();
+  test('mind (the command): he says how he feels', /I feel/.test(s.hoofd.zegt || ''), s.hoofd.zegt);
+  await doe('stop', 'quiet');
+  await doe('mind off'); await stap(1); s = await status();
+  test('mind off: the little brain is off', s.geest.aan === false, s.geest);
+  await vens([A, B]); await gz({ aan: false }); await doe('roam on'); let nogUp = -1;
+  for (let i = 0; i < 60 && nogUp < 0; i++) { await muisAan(i); await stap(1, 1 / 30); s = await status(); if (s.vensters.staOp) nogUp = i + 1; }
+  test('mind off: he still lives on the windows, like before (' + nogUp + ' s)', nogUp > 0, s.hoofd);
+  await doe('mind on'); await stap(1); s = await status();
+  test('mind on: and the brain is back', s.geest.aan === true, s.geest);
+  await gz({}, { actie: 'aai' }); await doe('mind forget'); await stap(1); s = await status();
+  test('mind forget: he forgets what he learned', s.geest.voorkeur.length === 0, s.geest);
+  u = await doe('mind banana');
+  test('mind: a strange word is explained', !u.ok && /mind off/.test(u.fouten[0].tekst), u);
+  await reset(); await gz(fris);
+  u = await v({ wat: 'schoon' });
+  test('mind: the canvas stays clean', u.vuil === 0 && (await status()).foutTel === 0, u);
+
   // ---- his name ----
   s = await status();
   test('name: he is called Maatje until you say otherwise', s.naam === 'Maatje', s.naam);
@@ -756,11 +854,12 @@ async function proeven() {
   await v({ wat: 'eigen-leeg' }); await v({ wat: 'eigen' });
 
   // ---- ten minutes by himself ----
+  await v({ wat: 'geest', zet: { energie: 0.9, verveling: 0.3, gezelligheid: 0.4, vergeet: true } });
   await doe('stop', 'roam on');
   const f1 = (await status()).foutTel, xs = new Set();
   let binnen = true;
   for (let i = 0; i < 40; i++) {
-    await stap(15, 1 / 30);
+    await v({ wat: 'muis', x: 10 + (i % 7) * 3, y: 10 }); await stap(15, 1 / 30);
     s = await status();
     xs.add(Math.round(s.hoofd.x / 100));
     if (s.hoofd.x < 0 || s.hoofd.x > W || s.hoofd.y > VL || s.hoofd.y < 0) binnen = false;

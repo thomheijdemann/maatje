@@ -185,7 +185,7 @@ class Figuur {
     this.gId = 0; this.lucht = true; this.vy = 0; this.vx = 0; this.stuiters = 0; this.hard = false;
   }
   laatDoor() { const p = this.gId && M.plat.op.get(this.gId); if (p) this.negeer = { id: p.id, y: p.y }; }      // dit venster telt niet als hij erdoorheen valt
-  staOp(p) { this.gId = p.id; this.gX0 = p.x0; this.gB = p.x1 - p.x0; this.y = p.y; }
+  staOp(p) { this.gId = p.id; this.gX0 = p.x0; this.gB = p.x1 - p.x0; this.y = p.y; if (this.hoofd && M.geest) M.geest.bezocht(p); }
   vs() { return Math.sqrt(this.maat / 6); }                         // grote poppetjes lopen sneller
   lokaal(lx, ly) {                                                  // van zijn eigen assen naar het scherm
     const th = VLAKHOEK[this.vlak] + this.draai, c = Math.cos(th), si = Math.sin(th);
@@ -365,6 +365,7 @@ class Figuur {
   /* oppakken met de muis */
   pak() {
     this.stopAlles();
+    this.pakOp = (this.gId && M.plat.op.get(this.gId) || {}).prog || null;      // van welk venster werd hij opgepakt?
     if (this.vlak !== 0) this.laatLos();
     this.gId = 0;
     this.vliegt = false; this.lucht = false; this.gepakt = true; this.houding = null; this.vrijSlaap = false; this.rol = 0; this.rolV = 0;
@@ -383,6 +384,7 @@ class Figuur {
     this.lucht = this.y < o.y - 1;
     if (klik) { if (!this.lucht && o.plat) this.staOp(o.plat); this.vx = 0; this.vy = 0; this.reageer(); return; }
     this.lucht = true;
+    if (this.hoofd && M.geest) M.geest.gegooid(this.pakOp);                          // opgepakt en weggegooid: dat venster vindt hij minder leuk
     this.vx = klem(this.gvx, -2200, 2200); this.vy = klem(this.gvy, -2200, 2200);
     const v = Math.hypot(this.vx, this.vy);
     this.rolV = v > 700 ? Math.sign(this.vx || 1) * Math.min(14, v / 130) : 0;
@@ -390,6 +392,7 @@ class Figuur {
   }
   reageer() {                                       // aangeklikt: een hartje en een sprongetje
     this.emote = { naam: 'hart', t: 0, duur: 1.3 }; this.ogen = 'blij'; this.ogenTot = M.t + 1.4;
+    if (this.hoofd && M.geest) M.geest.klik(this);
     M.klank('pop');
     for (const it of M.ontleed(['spring laag']).items) this.rij.push(it);
   }

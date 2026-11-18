@@ -165,5 +165,5 @@ M.klank = function (naam, n) {
 M.bewaar = function () {
   if (M.proef || !window.maatjeApp) return;
   const i = M.inst;
-  window.maatjeApp.bewaar({ naam: i.naam, kleur: i.kleur, maat: i.maat, hoed: i.hoed, geluid: i.geluid, vrij: i.vrij, meeleven: i.meeleven, skin: i.skin || '', vensters: i.vensters !== false, stijl: i.stijl });
+  window.maatjeApp.bewaar({ naam: i.naam, kleur: i.kleur, maat: i.maat, hoed: i.hoed, geluid: i.geluid, vrij: i.vrij, meeleven: i.meeleven, skin: i.skin || '', vensters: i.vensters !== false, stijl: i.stijl, geest: M.geest ? M.geest.exporteer() : undefined });
 };

@@ -15,6 +15,8 @@ This is an unofficial fan project, made by a kid and Claude. It is not affiliate
 
 ## What he can do
 
+- **A little brain.** He has feelings, notices new windows, keeps you company in the window you work in,
+  naps when you are away, waves when you are back, and learns which programs he likes.
 - **Live on your windows.** He jumps onto the top edge of your programs, walks along it, looks around and
   jumps on to the next window, all the time and all by himself. Drag a window and he rides along; close it
   and he falls. When there is no window he walks on the taskbar and over every screen.
@@ -104,6 +106,26 @@ about ten times a second where the windows on your screen are: their place, thei
 front, plus the name of the program they belong to (for example `chrome`). It never reads what is in a window:
 not the title, not the content, not a screenshot. Nothing leaves your pc. Running from the source, Maatje makes
 this little program once with the C# compiler that comes with Windows.
+
+## His little brain
+
+When nobody tells him anything, a little brain decides what he does. It is not a talking AI (he does not
+know words), it is a tiny brain that feels, notices and learns:
+
+- **Feelings.** He gets tired from moving and rests by sitting or napping. He gets bored when nothing happens
+  and then goes somewhere new or plays. He wants company until you pet him or click him.
+- **He notices.** A new window: he goes to look at it (if it is too far for one jump he walks closer first).
+  The window you are working in: he keeps you company there. You are away for a long time (the mouse does not
+  move): he gets sleepy and falls asleep. You are back: he wakes up and waves.
+- **He learns.** Every time you pet or click him while he stands on a window of some program, he likes that
+  program a little more. When you pick him up and throw him off a window, he likes it a little less. What he
+  learned is kept in his settings and fades away slowly.
+- **Every choice has a reason.** Every possible action gets a score from his feelings and what he sees, and he
+  picks one (the higher the score, the more likely).
+
+`mind` makes him say how he feels and what he likes. `mind off` makes him do things at random again, `mind on`
+brings the brain back, and `mind forget` makes him forget what he learned. In the window you find it all under
+Settings, "His little brain". What he looks at is only where the mouse is and where the windows are, nothing more.
 
 ## Unique
 
@@ -213,7 +235,7 @@ Maatje.exe --do="walk middle; say Hi!; anim victory-dance"
 | Feelings | `emote`, `eyes`, `look`, `wave`, `cheer`, `nod`, `shake`, `bow`, `startle`, `dance`, `sit`, `stand`, `sleep`, `wake`, `type` |
 | Animations | `anim` |
 | Effects | `fireworks`, `laser`, `lightning`, `rainbow`, `snow`, `title`, `sword`, `ball`, `kick`, `soccer` |
-| Looks | `color`, `size`, `hat`, `skin`, `unique`, `name` |
+| Looks | `color`, `size`, `hat`, `skin`, `unique`, `name`, `mind` |
 | Friends | `clone`, `cleanup` |
 | Claude | `work`, `follow` |
 | Other | `wait`, `stop`, `roam`, `sound`, `hide`, `come` |
@@ -298,6 +320,7 @@ anim victory-dance
   folder with your own animations, and a named pipe over which commands come in. No network port is opened.
 - `app/js/figuur.js`: how the little guy is drawn and how he moves (14 by 10 pixels, all in code), also his
   own look (`tekenStijl`) and how he stands on, rides on and falls off a window.
+- `app/js/geest.js`: his little brain: feelings, what he notices, what he learns and how he chooses.
 - `app/js/platform.js`: turns the list of windows into platforms (the visible part of each top edge) and works
   out how he has to jump to land on one. `app/vensters.cs` + `app/vensters.js`: the window finder.
 - `app/js/acties.js`: all commands. A new command is one small block `opdracht('name', {...})`;
@@ -336,7 +359,8 @@ Make the clip at the top again with `node tools/make-gif.js` (needs ffmpeg).
 - Made and tested on one pc: Windows 10, two screens of 1920 by 1080.
 - Screens with a different scaling than your main screen do not take part.
 - With a full-screen game it is better to hide him.
-- The program is not signed, so Windows warns the first time you start it.
+- The program is not signed, so Windows warns the first time you start it. For the same reason it can take
+  half a minute before the little window finder works the very first time (Windows checks it first).
 - The sound was made by an AI that cannot hear. If it sounds ugly, turn it off.
 
 ## Unofficial

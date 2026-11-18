@@ -380,7 +380,7 @@ opdracht('bovenop', {
     const t = rest.toLowerCase().trim();
     if (!t) return { wat: 'dichtbij' };
     if (PERCHWOORD[t]) return { wat: PERCHWOORD[t] };
-    if (!/^[a-z0-9._-]{1,40}$/.test(t)) throw new Error('like this: perch random   (or near, left, right, higher, or a program such as chrome)');
+    if (!/^[a-z0-9._-]{1,40}$/.test(t) && !/^#\d+(:-?\d+)?$/.test(t)) throw new Error('like this: perch random   (or near, left, right, higher, or a program such as chrome)');
     return { wat: t };
   },
   maak: (f, a) => bovenop(f, a.wat),
@@ -435,7 +435,7 @@ opdracht('schrik', { en: 'startle', soort: 'feelings', hulp: 'gets a fright: an 
 opdracht('dans', { en: 'dance', soort: 'feelings', hulp: 'dances (add how many seconds)', vb: 'dance 3', lees: getal(SEC, 0.5, 60, 3), lijf: true, grond: true, groep: true, maak: (f, a) => dans(f, a.n) });
 opdracht('zit', { en: 'sit', soort: 'feelings', hulp: 'sits down (until he has to do something else)', vb: 'sit', lees: geen, lijf: true, groep: true, maak: f => { f.houding = 'zit'; return wacht(0.35); } });
 opdracht('sta', { en: 'stand', soort: 'feelings', hulp: 'stands up', vb: 'stand', lees: geen, lijf: true, groep: true, maak: () => wacht(0.25) });
-opdracht('slaap', { en: 'sleep', soort: 'feelings', hulp: 'goes to sleep, until a new command or until you click him', vb: 'sleep', lees: geen, lijf: true, groep: true, maak: f => { f.houding = 'slaap'; f.vrijSlaap = false; return wacht(0.4); } });
+opdracht('slaap', { en: 'sleep', soort: 'feelings', hulp: 'goes to sleep, until a new command or until you click him', vb: 'sleep', lees: geen, lijf: true, groep: true, maak: f => { f.houding = 'slaap'; f.vrijSlaap = !!f.slaapVraag; f.slaapVraag = false; return wacht(0.4); } });      // slaapVraag: zijn eigen brein vroeg erom (dan mag hij vanzelf wakker worden)
 opdracht('wakker', { en: 'wake', soort: 'feelings', hulp: 'wakes up', vb: 'wake', lees: geen, lijf: true, groep: true, maak: f => { f.ogen = 'groot'; f.ogenTot = M.t + 0.6; return wacht(0.3); } });
 opdracht('typ', { en: 'type', soort: 'feelings', hulp: 'sits typing on a little laptop (add how many seconds)', vb: 'type 3', lees: getal(SEC, 0.5, 600, 4), lijf: true, grond: true, maak: (f, a) => typ(f, a.n) });
 
@@ -573,6 +573,26 @@ opdracht('naam', {
   },
   maak: (f, a) => { M.inst.naam = a.naam; M.bewaar(); const m = f.midden(); M.vonken(m.x, m.y, 10, ['#ffffff', '#ffe066', f.kleurNu], 170); M.klank('pop'); return null; },
 });
+opdracht('geest', {
+  en: 'mind', soort: 'looks', ook: ['brain'], magInLucht: true,
+  hulp: 'his little brain: mind (he says how he feels and what he likes) | mind off (he does things at random, like before) | mind on | mind forget (he forgets what he learned)', vb: 'mind',
+  lees: rest => {
+    const t = rest.trim().toLowerCase();
+    if (!t) return { wat: 'vertel' };
+    if (['on', 'aan'].includes(t)) return { wat: 'aan' };
+    if (['off', 'uit'].includes(t)) return { wat: 'uit' };
+    if (['forget', 'vergeet', 'reset'].includes(t)) return { wat: 'vergeet' };
+    throw new Error('like this: mind   (or mind on, mind off, mind forget)');
+  },
+  maak: (f, a) => {
+    const g = M.geest;
+    if (a.wat === 'aan') { g.aan = true; M.bewaar(); return null; }
+    if (a.wat === 'uit') { g.aan = false; M.bewaar(); return null; }
+    if (a.wat === 'vergeet') { g.vergeet(); g.verveling = 0.25; g.gezelligheid = 0.4; M.bewaar(); const k = f.kop(); M.vonken(k.x, k.y, 6, ['#ffffff', '#bfe9ff'], 120); return null; }
+    const b = new Bel('denk', g.vertel() + (g.reden ? ' (I just wanted to ' + g.doel + ': ' + g.reden + '.)' : '')); f.bel = b;
+    return zodra(() => f.bel !== b);
+  },
+});
 opdracht('kloon', { en: 'clone', soort: 'friends', hulp: 'friends appear who follow him and copy what he does (at most 12)', vb: 'clone 3', lees: getal('the number of friends', 1, 12, 3), stil: true, maak: (f, a) => { for (let i = 0; i < Math.round(a.n); i++) M.nieuweKloon(); return wacht(0.3); } });
 opdracht('opruimen', {
   en: 'cleanup', soort: 'friends', hulp: 'friends, ball, snow and rainbow away', vb: 'cleanup', lees: geen, ook: ['clear'], stil: true,
@@ -659,6 +679,7 @@ M.doe = function (regels, opt) {
     if (namen.includes('kom') && M.pauze) M.zetZicht(true, true);
     if (f.vrijBezig || stopI >= 0) { f.stopAlles(); f.vrijBezig = false; }
     if (stopI >= 0) { for (let i = 1; i < M.figuren.length; i++) M.figuren[i].stopAlles(); items = items.slice(stopI + 1); }
+    f.slaapVraag = false;
     if (f.vrijSlaap) { f.vrijSlaap = false; f.houding = null; }
     M.laatsteOpdracht = M.t; M.pauzeNa = 12; M.blijfTot = 0;      // na een opdracht blijft hij 12 s staan voor hij weer vanzelf gaat lopen
   }
