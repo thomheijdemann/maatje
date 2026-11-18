@@ -1,6 +1,6 @@
 {
   "name": "maatje",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "A little pixel pet that lives on your windows, with 500+ animations, and that Claude can control (unofficial fan project)",
   "private": true,
   "license": "MIT",

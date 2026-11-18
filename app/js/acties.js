@@ -541,7 +541,7 @@ const UNIEK = {
 opdracht('uniek', {
   en: 'unique', soort: 'looks', ook: ['dice'], stil: true,
   hulp: 'gives him his very own look: unique (a surprise) | unique <your name> (always the same one for the same name) | unique top antennae|ears|horns|tuft|none | unique pattern belly|stripes|spots|none | unique cheeks on|off | unique classic (back to the normal look, with nothing extra)',
-  vb: 'unique thom',
+  vb: 'unique milo',
   lees: rest => {
     const d = rest.trim().split(/\s+/).filter(Boolean), w = (d[0] || '').toLowerCase();
     if (!d.length || ['roll', 'random', 'surprise'].includes(w)) return { roll: true };

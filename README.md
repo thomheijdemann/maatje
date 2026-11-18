@@ -149,7 +149,7 @@ He looks like the little guy you know, and he stays that way. But if you want, h
 antennae with a glowing tip, a lighter belly patch, rosy cheeks, and more.
 
 ```
-node maatje.js unique thom          a look that is only for the name "thom" (the same name always gives the same look)
+node maatje.js unique milo          a look that is only for the name "milo" (the same name always gives the same look)
 node maatje.js unique               a surprise
 node maatje.js "unique top horns; unique pattern stripes; unique cheeks off"
 node maatje.js unique classic       back to the normal look, with nothing extra

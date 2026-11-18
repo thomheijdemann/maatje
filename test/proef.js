@@ -177,7 +177,7 @@ async function proeven() {
   }
   test('every example from the help runs without errors', !kapot.length, kapot);
   test('after every example nothing is left on the canvas once it is erased', !smeer.length, smeer);
-  await doe('stop', 'cleanup', 'land', 'color orange', 'unique classic', 'name Maatje', 'windows on','hat none', 'eyes normal', 'rainbow off', 'roam off', 'run s1:middle'); await stap(12);     // (the help example "unique thom" gave him another look)
+  await doe('stop', 'cleanup', 'land', 'color orange', 'unique classic', 'name Maatje', 'windows on','hat none', 'eyes normal', 'rainbow off', 'roam off', 'run s1:middle'); await stap(12);     // (the help example "unique milo" gave him another look)
   s = await status();
   test('back to normal: on the floor, orange, alone', s.hoofd.y === VL && s.hoofd.waar === 'vloer' && s.figuren === 1 && s.hoofd.kleur === '#d97757' && s.hoofd.maat === 6, s.hoofd);
 
@@ -693,9 +693,9 @@ async function proeven() {
   await doe('unique top antennae', 'unique pattern belly', 'unique cheeks on'); await stap(0.3); s = await status();
   test('look: antennae, a belly patch and rosy cheeks are there when you ask for them', s.uiterlijk.stijl.top === 'antenne' && s.uiterlijk.stijl.vlek === 'buik' && s.uiterlijk.stijl.wangen === true, s.uiterlijk);
   await foto('look-antennae', { gebied: { x: 860, y: 880, w: 200, h: 160 } });
-  await doe('unique thom'); await stap(0.3); const e1 = (await status()).uiterlijk;
+  await doe('unique milo'); await stap(0.3); const e1 = (await status()).uiterlijk;
   await doe('unique anna'); await stap(0.3); const e2 = (await status()).uiterlijk;
-  await doe('unique THOM '); await stap(0.3); const e3 = (await status()).uiterlijk;
+  await doe('unique MILO '); await stap(0.3); const e3 = (await status()).uiterlijk;
   test('unique <name>: the same name always gives the same look, another name another look', JSON.stringify(e1) === JSON.stringify(e3) && JSON.stringify(e1) !== JSON.stringify(e2), { e1, e2, e3 });
   const verschil = new Set();
   for (const n of ['maatje', 'robin', 'sam', 'lotte', 'mila', 'daan', 'noor', 'finn', 'tess', 'liam', 'eva', 'jesse', 'luuk', 'zoe', 'bram', 'fleur', 'sven', 'isa', 'tim', 'lena']) { await doe('unique ' + n); await stap(0.05); const ee = (await status()).uiterlijk; verschil.add(ee.kleur + JSON.stringify(ee.stijl)); }
@@ -708,7 +708,7 @@ async function proeven() {
   test('unique cheeks: only on or off', !u.ok, u);
   await doe('unique classic'); await stap(0.3); s = await status();
   test('unique classic: back to the normal look, nothing extra', s.uiterlijk.stijl.top === 'geen' && s.uiterlijk.stijl.vlek === 'geen' && s.uiterlijk.stijl.wangen === false, s.uiterlijk);
-  await doe('unique thom', 'unique default'); await stap(0.3); s = await status();
+  await doe('unique milo', 'unique default'); await stap(0.3); s = await status();
   test('unique default means the same: the normal look (the colour goes back to orange too with "color orange")', s.uiterlijk.stijl.top === 'geen' && s.uiterlijk.stijl.vlek === 'geen' && s.uiterlijk.stijl.wangen === false, s.uiterlijk);
   await doe('color orange');
   await doe('unique', 'wait 0.3'); await stap(0.6); const w1 = (await status()).uiterlijk;
@@ -718,7 +718,7 @@ async function proeven() {
   test('friends have the same look as he has', s.figuren === 3 && s.uiterlijk.stijl.top === 'antenne', s.uiterlijk);
   await doe('cleanup'); await stap(0.5);
   nr = 0;
-  const NAMEN = ['classic', 'thom', 'anna', 'maatje', 'robin', 'sam', 'lotte', 'mila', 'daan', 'noor', 'finn', 'tess', 'liam', 'eva', 'jesse', 'luuk', 'zoe', 'bram', 'fleur', 'sven', 'isa', 'tim', 'lena'];
+  const NAMEN = ['classic', 'milo', 'anna', 'maatje', 'robin', 'sam', 'lotte', 'mila', 'daan', 'noor', 'finn', 'tess', 'liam', 'eva', 'jesse', 'luuk', 'zoe', 'bram', 'fleur', 'sven', 'isa', 'tim', 'lena'];
   for (const n of NAMEN) {
     await doe('hat none', 'unique ' + n); await stap(0.4);
     await foto('unique-' + String(nr++).padStart(2, '0') + '-' + n, { gebied: { x: 860, y: 900, w: 200, h: 140 } });

@@ -5,7 +5,7 @@
    The code is written in Dutch (the names and the comments below); what the user sees is English. */
 const DONKER = '#141413';
 const M = window.M = {
-  versie: '1.5.0', gebruiker: 'you',
+  versie: '1.5.1', gebruiker: 'you',
   W: 1920, H: 1040, dpr: 1,
   schermen: [{ x: 0, y: 0, w: 1920, h: 1040 }],
   t: 0, figuren: [], hoofd: null, fx: [], delen: [], bal: null,
